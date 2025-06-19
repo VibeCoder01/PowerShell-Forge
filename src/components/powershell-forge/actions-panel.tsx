@@ -7,20 +7,18 @@ import { Save, FolderOpen, Settings2, Download, Upload, FileText, Brain } from '
 import React, { useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { ScriptType } from '@/types/powershell';
+import type { ScriptType, ScriptElement } from '@/types/powershell'; // Updated import
 
 interface ActionsPanelProps {
-  scripts: { add: string; launch: string; remove: string };
   onSaveScript: (type: ScriptType) => void;
-  onLoadScript: (type: ScriptType, content: string) => void;
+  onLoadScript: (type: ScriptType, content: string) => void; // Expects plain text for .ps1
   onSaveAllScripts: () => void;
-  onLoadAllScripts: (scripts: { add: string; launch: string; remove: string }) => void;
+  onLoadAllScripts: (scripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => void; // Expects structured data
   isAiSuggestionsEnabled: boolean;
   onAiSuggestionToggle: () => void;
 }
 
 export function ActionsPanel({ 
-  scripts, 
   onSaveScript, 
   onLoadScript,
   onSaveAllScripts,
@@ -44,20 +42,28 @@ export function ActionsPanel({
         if (type === 'all') {
           try {
             const parsedScripts = JSON.parse(content);
-            if (parsedScripts.add !== undefined && parsedScripts.launch !== undefined && parsedScripts.remove !== undefined) {
-              onLoadAllScripts(parsedScripts);
+            // Basic validation for the structure of loaded 'all scripts' data
+            if (
+              parsedScripts &&
+              typeof parsedScripts === 'object' &&
+              Array.isArray(parsedScripts.add) && // Check if 'add' is an array (further checks can be added for ScriptElement structure)
+              Array.isArray(parsedScripts.launch) &&
+              Array.isArray(parsedScripts.remove)
+            ) {
+              onLoadAllScripts(parsedScripts as { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] });
             } else {
-              alert('Invalid format for "all scripts" file.');
+              alert('Invalid format for "all scripts" file. Expected JSON with add, launch, remove arrays of script elements.');
             }
           } catch (error) {
             alert('Error parsing "all scripts" file. Ensure it is a valid JSON.');
           }
         } else {
-          onLoadScript(type, content);
+          // For individual .ps1 files, pass raw text content
+          onLoadScript(type as ScriptType, content);
         }
       };
       reader.readAsText(file);
-      event.target.value = ''; // Reset file input
+      event.target.value = ''; 
     }
   };
 
@@ -78,7 +84,7 @@ export function ActionsPanel({
           <h3 className="text-md font-semibold mb-3 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
             <div key={type} className="mb-3 p-3 border rounded-md bg-background/50">
-              <p className="capitalize font-medium mb-2 text-sm">{type} Script</p>
+              <p className="capitalize font-medium mb-2 text-sm">{type} Script (.ps1)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1">
                   <Download className="mr-2 h-4 w-4" /> Save {type}
@@ -88,7 +94,7 @@ export function ActionsPanel({
                 </Button>
                 <input
                   type="file"
-                  accept=".ps1,.txt"
+                  accept=".ps1,.txt" // Individual scripts are ps1 or txt
                   ref={fileInputRefs[type]}
                   onChange={(e) => handleFileLoad(type, e)}
                   className="hidden"
@@ -99,7 +105,7 @@ export function ActionsPanel({
           ))}
           <Separator className="my-4" />
            <div className="mb-3 p-3 border rounded-md bg-background/50">
-              <p className="font-medium mb-2 text-sm">All Scripts</p>
+              <p className="font-medium mb-2 text-sm">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="flex-1">
                   <Download className="mr-2 h-4 w-4" /> Save All
@@ -109,7 +115,7 @@ export function ActionsPanel({
                 </Button>
                  <input
                   type="file"
-                  accept=".json"
+                  accept=".json" // All scripts are saved/loaded as JSON
                   ref={fileInputRefs.all}
                   onChange={(e) => handleFileLoad('all', e)}
                   className="hidden"

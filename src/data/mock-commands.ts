@@ -1,6 +1,6 @@
-import type { PowerShellCommand } from '@/types/powershell';
+import type { BasePowerShellCommand } from '@/types/powershell';
 
-export const mockCommands: PowerShellCommand[] = [
+export const mockCommands: BasePowerShellCommand[] = [
   {
     id: 'Get-Process',
     name: 'Get-Process',

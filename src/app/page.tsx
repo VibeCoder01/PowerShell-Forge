@@ -5,70 +5,114 @@ import { CommandBrowser } from '@/components/powershell-forge/command-browser';
 import { ScriptEditorColumn } from '@/components/powershell-forge/script-editor-column';
 import { ActionsPanel } from '@/components/powershell-forge/actions-panel';
 import { mockCommands } from '@/data/mock-commands';
-import type { PowerShellCommand, ScriptType } from '@/types/powershell';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand } from '@/types/powershell';
 import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { generateUniqueId } from '@/lib/utils';
+
+// Helper function to stringify ScriptElements for .ps1 export
+function stringifyScriptElements(elements: ScriptElement[]): string {
+  return elements.map(el => {
+    if (el.type === 'raw') {
+      return el.content;
+    }
+    // el.type === 'command'
+    const commandElement = el as ScriptPowerShellCommand;
+    const paramsString = commandElement.parameters
+      .map(param => {
+        const value = commandElement.parameterValues[param.name];
+        // Only include parameter if value is not empty or undefined
+        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : ''; // Basic quoting, PowerShell uses backtick to escape quotes
+      })
+      .filter(Boolean) // Remove empty strings
+      .join(' ');
+    return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
+  }).join('\n');
+}
+
+// Helper function to parse plain text script into RawScriptLine[]
+function parseTextToRawScriptLines(text: string): RawScriptLine[] {
+  if (!text || typeof text !== 'string') return [];
+  return text.split('\n').map(line => ({
+    instanceId: generateUniqueId(),
+    type: 'raw',
+    content: line,
+  }));
+}
+
 
 export default function PowerShellForgePage() {
-  const [commands, setCommands] = useState<PowerShellCommand[]>([]);
-  const [addScript, setAddScript] = useState('');
-  const [launchScript, setLaunchScript] = useState('');
-  const [removeScript, setRemoveScript] = useState('');
+  const [commands, setCommands] = useState<BasePowerShellCommand[]>([]);
+  const [addScriptElements, setAddScriptElements] = useState<ScriptElement[]>([]);
+  const [launchScriptElements, setLaunchScriptElements] = useState<ScriptElement[]>([]);
+  const [removeScriptElements, setRemoveScriptElements] = useState<ScriptElement[]>([]);
   const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
 
   const { toast } = useToast();
 
   useEffect(() => {
-    // In a real app, you might fetch commands here
     setCommands(mockCommands);
   }, []);
   
-  // Load scripts from localStorage on initial mount
   useEffect(() => {
-    const savedAddScript = localStorage.getItem('powershellForge_addScript');
-    const savedLaunchScript = localStorage.getItem('powershellForge_launchScript');
-    const savedRemoveScript = localStorage.getItem('powershellForge_removeScript');
-    const savedAiToggle = localStorage.getItem('powershellForge_aiSuggestionsEnabled');
+    const loadFromLocalStorage = (key: string, setter: React.Dispatch<React.SetStateAction<ScriptElement[]>>) => {
+      const savedData = localStorage.getItem(key);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          // Basic validation: check if it's an array and elements have instanceId and type
+          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type)) {
+            setter(parsed);
+          } else if (typeof savedData === 'string') { // Legacy: treat as plain text
+            setter(parseTextToRawScriptLines(savedData));
+          }
+        } catch (e) { // If JSON parsing fails, treat as plain text
+          setter(parseTextToRawScriptLines(savedData));
+        }
+      }
+    };
 
-    if (savedAddScript) setAddScript(savedAddScript);
-    if (savedLaunchScript) setLaunchScript(savedLaunchScript);
-    if (savedRemoveScript) setRemoveScript(savedRemoveScript);
+    loadFromLocalStorage('powershellForge_addScriptElements', setAddScriptElements);
+    loadFromLocalStorage('powershellForge_launchScriptElements', setLaunchScriptElements);
+    loadFromLocalStorage('powershellForge_removeScriptElements', setRemoveScriptElements);
+    
+    const savedAiToggle = localStorage.getItem('powershellForge_aiSuggestionsEnabled');
     if (savedAiToggle) setIsAiSuggestionsEnabled(savedAiToggle === 'true');
   }, []);
 
-  // Save scripts to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('powershellForge_addScript', addScript);
-  }, [addScript]);
+    localStorage.setItem('powershellForge_addScriptElements', JSON.stringify(addScriptElements));
+  }, [addScriptElements]);
   useEffect(() => {
-    localStorage.setItem('powershellForge_launchScript', launchScript);
-  }, [launchScript]);
+    localStorage.setItem('powershellForge_launchScriptElements', JSON.stringify(launchScriptElements));
+  }, [launchScriptElements]);
   useEffect(() => {
-    localStorage.setItem('powershellForge_removeScript', removeScript);
-  }, [removeScript]);
+    localStorage.setItem('powershellForge_removeScriptElements', JSON.stringify(removeScriptElements));
+  }, [removeScriptElements]);
   useEffect(() => {
     localStorage.setItem('powershellForge_aiSuggestionsEnabled', String(isAiSuggestionsEnabled));
   }, [isAiSuggestionsEnabled]);
 
 
-  const scriptSetters: Record<ScriptType, React.Dispatch<React.SetStateAction<string>>> = {
-    add: setAddScript,
-    launch: setLaunchScript,
-    remove: setRemoveScript,
+  const scriptElementSetters: Record<ScriptType, React.Dispatch<React.SetStateAction<ScriptElement[]>>> = {
+    add: setAddScriptElements,
+    launch: setLaunchScriptElements,
+    remove: setRemoveScriptElements,
   };
 
-  const scriptContents: Record<ScriptType, string> = {
-    add: addScript,
-    launch: launchScript,
-    remove: removeScript,
+  const scriptElementContents: Record<ScriptType, ScriptElement[]> = {
+    add: addScriptElements,
+    launch: launchScriptElements,
+    remove: removeScriptElements,
   };
 
   const handleSaveScript = (type: ScriptType) => {
-    const content = scriptContents[type];
-    if (!content.trim()) {
+    const elements = scriptElementContents[type];
+    if (elements.length === 0) {
       toast({ title: 'Empty Script', description: `The ${type} script is empty. Nothing to save.`, variant: 'default' });
       return;
     }
+    const content = stringifyScriptElements(elements);
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -80,16 +124,16 @@ export default function PowerShellForgePage() {
     toast({ title: 'Script Saved', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script saved as ${type}_script.ps1` });
   };
 
-  const handleLoadScript = (type: ScriptType, content: string) => {
-    scriptSetters[type](content);
-    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded successfully.` });
+  const handleLoadScript = (type: ScriptType, textContent: string) => {
+    scriptElementSetters[type](parseTextToRawScriptLines(textContent));
+    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded successfully. Each line is treated as raw text.` });
   };
 
   const handleSaveAllScripts = () => {
     const allScripts = {
-      add: addScript,
-      launch: launchScript,
-      remove: removeScript,
+      add: addScriptElements,
+      launch: launchScriptElements,
+      remove: removeScriptElements,
     };
     const content = JSON.stringify(allScripts, null, 2);
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
@@ -103,10 +147,10 @@ export default function PowerShellForgePage() {
     toast({ title: 'All Scripts Saved', description: 'All scripts saved to powershell_forge_scripts.json' });
   };
 
-  const handleLoadAllScripts = (loadedScripts: { add: string; launch: string; remove: string }) => {
-    setAddScript(loadedScripts.add || '');
-    setLaunchScript(loadedScripts.launch || '');
-    setRemoveScript(loadedScripts.remove || '');
+  const handleLoadAllScripts = (loadedScripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => {
+    setAddScriptElements(loadedScripts.add || []);
+    setLaunchScriptElements(loadedScripts.launch || []);
+    setRemoveScriptElements(loadedScripts.remove || []);
     toast({ title: 'All Scripts Loaded', description: 'All scripts have been loaded successfully.' });
   };
   
@@ -135,10 +179,10 @@ export default function PowerShellForgePage() {
             title="Add Script"
             icon={PlusSquare}
             scriptType="add"
-            scriptContent={addScript}
-            setScriptContent={setAddScript}
+            scriptElements={addScriptElements}
+            setScriptElements={setAddScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            onAiSuggestionToggle={handleAiSuggestionToggle}
+            baseCommands={commands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
@@ -146,10 +190,10 @@ export default function PowerShellForgePage() {
             title="Launch Script"
             icon={PlaySquare}
             scriptType="launch"
-            scriptContent={launchScript}
-            setScriptContent={setLaunchScript}
+            scriptElements={launchScriptElements}
+            setScriptElements={setLaunchScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            onAiSuggestionToggle={handleAiSuggestionToggle}
+            baseCommands={commands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
@@ -157,19 +201,18 @@ export default function PowerShellForgePage() {
             title="Remove Script"
             icon={MinusSquare}
             scriptType="remove"
-            scriptContent={removeScript}
-            setScriptContent={setRemoveScript}
+            scriptElements={removeScriptElements}
+            setScriptElements={setRemoveScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            onAiSuggestionToggle={handleAiSuggestionToggle}
+            baseCommands={commands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ActionsPanel
-            scripts={{ add: addScript, launch: launchScript, remove: removeScript }}
             onSaveScript={handleSaveScript}
-            onLoadScript={handleLoadScript}
+            onLoadScript={handleLoadScript} // This now expects plain text content
             onSaveAllScripts={handleSaveAllScripts}
-            onLoadAllScripts={handleLoadAllScripts}
+            onLoadAllScripts={handleLoadAllScripts} // This expects ScriptElement[] structure
             isAiSuggestionsEnabled={isAiSuggestionsEnabled}
             onAiSuggestionToggle={handleAiSuggestionToggle}
           />

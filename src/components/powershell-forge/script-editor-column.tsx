@@ -1,42 +1,68 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { PowerShellCommand, ScriptType } from '@/types/powershell';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, ScriptPowerShellCommand, RawScriptLine } from '@/types/powershell';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { generateScriptFromDescription as generateScriptFlow } from '@/ai/flows/generate-script-from-description';
 import { suggestScript as suggestScriptFlow } from '@/ai/flows/suggest-script';
 import type { LucideIcon } from 'lucide-react';
-import { Wand2, Sparkles, Loader2 } from 'lucide-react';
+import { Wand2, Sparkles, Loader2, Trash2 } from 'lucide-react';
 import { AiScriptGeneratorDialog } from './ai-script-generator-dialog';
+import { ParameterEditDialog } from './parameter-edit-dialog'; // To be created
+import { ScriptCommandChip } from './script-command-chip'; // To be created
+import { generateUniqueId } from '@/lib/utils';
 
 interface ScriptEditorColumnProps {
   title: string;
   icon: LucideIcon;
   scriptType: ScriptType;
-  scriptContent: string;
-  setScriptContent: (content: string) => void;
+  scriptElements: ScriptElement[];
+  setScriptElements: (elements: ScriptElement[] | ((prevElements: ScriptElement[]) => ScriptElement[])) => void;
   isAiSuggestionsGloballyEnabled: boolean;
-  onAiSuggestionToggle: () => void;
+  baseCommands: BasePowerShellCommand[]; // For rehydrating command details if needed
 }
+
+// Helper to stringify ScriptElements for AI context
+function stringifyScriptElementsForAI(elements: ScriptElement[]): string {
+  return elements.map(el => {
+    if (el.type === 'raw') {
+      return el.content;
+    }
+    const commandElement = el as ScriptPowerShellCommand;
+    const paramsString = commandElement.parameters
+      .map(param => {
+        const value = commandElement.parameterValues[param.name];
+        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
+      })
+      .filter(Boolean)
+      .join(' ');
+    return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
+  }).join('\n');
+}
+
 
 export function ScriptEditorColumn({
   title,
   icon: Icon,
   scriptType,
-  scriptContent,
-  setScriptContent,
+  scriptElements,
+  setScriptElements,
   isAiSuggestionsGloballyEnabled,
+  baseCommands,
 }: ScriptEditorColumnProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const { toast } = useToast();
   const [isGeneratingFullScript, setIsGeneratingFullScript] = useState(false);
   const [isSuggestingScript, setIsSuggestingScript] = useState(false);
   const [showAiGeneratorDialog, setShowAiGeneratorDialog] = useState(false);
+  
+  const [editingCommand, setEditingCommand] = useState<ScriptPowerShellCommand | null>(null);
+  const [showParameterDialog, setShowParameterDialog] = useState(false);
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -44,21 +70,24 @@ export function ScriptEditorColumn({
     try {
       const commandJson = e.dataTransfer.getData('application/json');
       if (!commandJson) return;
-      const command = JSON.parse(commandJson) as PowerShellCommand;
+      const baseCommand = JSON.parse(commandJson) as BasePowerShellCommand;
       
-      let commandText = command.name;
-      if (command.parameters.length > 0) {
-        const paramsText = command.parameters.map(p => `-${p.name} <value>`).join(' ');
-        commandText += ` ${paramsText}`;
-      }
+      const newScriptCommand: ScriptPowerShellCommand = {
+        instanceId: generateUniqueId(),
+        type: 'command',
+        name: baseCommand.name,
+        parameters: baseCommand.parameters, // Keep original parameters for structure
+        parameterValues: baseCommand.parameters.reduce((acc, param) => {
+          acc[param.name] = ''; // Initialize with empty values
+          return acc;
+        }, {} as { [key: string]: string }),
+        baseCommandId: baseCommand.id,
+      };
 
-      const currentText = scriptContent;
-      // For simplicity, append to new line. Could be improved to insert at cursor.
-      const newText = currentText ? `${currentText}\n${commandText}` : commandText;
-      setScriptContent(newText);
+      setScriptElements(prev => [...prev, newScriptCommand]);
       toast({
         title: 'Command Added',
-        description: `${command.name} added to ${title} script.`,
+        description: `${baseCommand.name} added to ${title} script. Click to edit parameters.`,
       });
     } catch (error) {
       console.error('Failed to parse dropped data:', error);
@@ -84,10 +113,15 @@ export function ScriptEditorColumn({
     setIsGeneratingFullScript(true);
     try {
       const result = await generateScriptFlow({ description });
-      setScriptContent(result.script);
+      const newElements: RawScriptLine[] = result.script.split('\n').map(line => ({
+        instanceId: generateUniqueId(),
+        type: 'raw',
+        content: line,
+      }));
+      setScriptElements(newElements);
       toast({
         title: 'AI Script Generated',
-        description: `${title} script has been populated by AI.`,
+        description: `${title} script has been populated by AI as raw text.`,
       });
     } catch (error) {
       console.error('AI script generation failed:', error);
@@ -102,25 +136,30 @@ export function ScriptEditorColumn({
   };
   
   const handleSuggestScript = async () => {
-    if (!scriptContent.trim()) {
+    if (scriptElements.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Cannot Suggest',
-        description: 'Script editor is empty. Type something first or use "Generate with AI".',
+        description: 'Script editor is empty. Type something or add commands first.',
       });
       return;
     }
     setIsSuggestingScript(true);
     try {
+      const scriptContext = stringifyScriptElementsForAI(scriptElements);
       const result = await suggestScriptFlow({ 
-        context: scriptContent, 
-        objective: `Refine or complete a PowerShell script for ${scriptType}ing an application.` 
+        context: scriptContext, 
+        objective: `Refine or complete a PowerShell script for ${scriptType}ing an application, based on the provided context.` 
       });
-      // For now, replace the content. Could be improved to offer choices.
-      setScriptContent(result.suggestion);
+      const newElements: RawScriptLine[] = result.suggestion.split('\n').map(line => ({
+        instanceId: generateUniqueId(),
+        type: 'raw',
+        content: line,
+      }));
+      setScriptElements(newElements); // Replace current content with AI suggestion as raw lines
       toast({
         title: 'AI Suggestion Applied',
-        description: `AI has updated the ${title} script.`,
+        description: `AI has updated the ${title} script with new content (as raw text).`,
       });
     } catch (error) {
       console.error('AI script suggestion failed:', error);
@@ -134,13 +173,41 @@ export function ScriptEditorColumn({
     }
   };
 
+  const handleEditCommand = (command: ScriptPowerShellCommand) => {
+    const fullBaseCommand = baseCommands.find(bc => bc.id === command.baseCommandId);
+    if (fullBaseCommand) {
+      setEditingCommand({
+        ...command,
+        parameters: fullBaseCommand.parameters, // Ensure full parameter list for dialog
+      });
+      setShowParameterDialog(true);
+    } else {
+       // Fallback or error: command details not found
+      setEditingCommand(command); // Use existing parameters if base not found
+      setShowParameterDialog(true);
+      toast({variant: 'destructive', title: 'Warning', description: `Base command details for ${command.name} not found. Editing with current parameters.`});
+    }
+  };
+
+  const handleSaveEditedCommand = (updatedCommand: ScriptPowerShellCommand) => {
+    setScriptElements(prevElements => 
+      prevElements.map(el => 
+        el.instanceId === updatedCommand.instanceId ? updatedCommand : el
+      )
+    );
+    setShowParameterDialog(false);
+    setEditingCommand(null);
+    toast({title: 'Command Updated', description: `${updatedCommand.name} parameters saved.`});
+  };
+
+  const handleRemoveElement = (instanceId: string) => {
+    setScriptElements(prevElements => prevElements.filter(el => el.instanceId !== instanceId));
+    toast({title: 'Element Removed', description: 'Script element removed.'});
+  };
 
   return (
     <Card 
       className={`h-full flex flex-col shadow-xl transition-all duration-200 ${isDraggingOver ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
       aria-dropeffect="copy"
     >
       <CardHeader className="py-4 px-4 border-b">
@@ -149,22 +216,50 @@ export function ScriptEditorColumn({
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 flex-grow flex flex-col">
-        <Textarea
-          placeholder={`Drag commands here or type your ${title.toLowerCase()} script...`}
-          value={scriptContent}
-          onChange={(e) => setScriptContent(e.target.value)}
-          className="flex-grow text-sm font-mono resize-none h-full min-h-[200px]"
-          aria-label={`${title} script editor`}
-        />
+      <CardContent 
+        className="p-0 flex-grow flex flex-col relative"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        <ScrollArea className="h-full w-full">
+          <div className="p-4 space-y-2 min-h-[200px] font-mono text-sm">
+            {scriptElements.length === 0 && (
+              <p className="text-muted-foreground text-center py-10">Drag commands here or use AI to generate script...</p>
+            )}
+            {scriptElements.map((element, index) => (
+              <div key={element.instanceId} className="group relative flex items-center">
+                {element.type === 'command' ? (
+                  <ScriptCommandChip
+                    command={element}
+                    onClick={() => handleEditCommand(element)}
+                  />
+                ) : (
+                  <div className="p-2 border border-transparent rounded hover:border-muted-foreground/50 flex-grow break-all">
+                    {element.content || <span className="text-muted-foreground">[Empty line]</span>}
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="ml-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2 bg-card hover:bg-destructive/20"
+                  onClick={() => handleRemoveElement(element.instanceId)}
+                  aria-label="Remove script element"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       </CardContent>
       <CardFooter className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center space-x-2">
            <Switch
             id={`ai-suggestions-${scriptType}`}
             checked={isAiSuggestionsGloballyEnabled}
-            disabled // This switch is now controlled globally from ActionsPanel
-            aria-label="Enable AI suggestions"
+            disabled
+            aria-label="Enable AI suggestions (controlled globally)"
           />
           <Label htmlFor={`ai-suggestions-${scriptType}`} className="text-sm">AI Suggestions</Label>
         </div>
@@ -182,7 +277,7 @@ export function ScriptEditorColumn({
             variant="outline" 
             size="sm" 
             onClick={handleSuggestScript}
-            disabled={!isAiSuggestionsGloballyEnabled || isSuggestingScript || isGeneratingFullScript || !scriptContent.trim()}
+            disabled={!isAiSuggestionsGloballyEnabled || isSuggestingScript || isGeneratingFullScript || scriptElements.length === 0}
             title={!isAiSuggestionsGloballyEnabled ? "Enable AI Suggestions globally to use this feature" : "Get AI suggestion for current script"}
           >
              {isSuggestingScript ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
@@ -196,6 +291,15 @@ export function ScriptEditorColumn({
         onGenerate={handleGenerateScript}
         scriptTypeTitle={title}
       />
+      {editingCommand && (
+        <ParameterEditDialog
+          key={editingCommand.instanceId} // Force re-mount to reset dialog state if command changes
+          isOpen={showParameterDialog}
+          onOpenChange={setShowParameterDialog}
+          command={editingCommand}
+          onSave={handleSaveEditedCommand}
+        />
+      )}
     </Card>
   );
 }
