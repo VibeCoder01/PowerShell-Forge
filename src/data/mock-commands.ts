@@ -1,6 +1,10 @@
 
 import type { BasePowerShellCommand } from '@/types/powershell';
 
+// Note: Common PowerShell parameters (Verbose, Debug, ErrorAction, etc.) are generally omitted 
+// from the 'parameters' list here as they will be handled by a dedicated UI section.
+// Descriptions are kept concise for UI purposes.
+
 export const mockCommands: BasePowerShellCommand[] = [
   // System Management
   {
@@ -37,13 +41,6 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'System Management',
     parameters: [{ name: 'Property' }],
     description: 'Gets system and operating system properties.'
-  },
-  {
-    id: 'Get-ComputerRestorePoint',
-    name: 'Get-ComputerRestorePoint',
-    category: 'System Management',
-    parameters: [{ name: 'RestorePoint' }, { name: 'LastStatus' }],
-    description: 'Gets the restore points on the local computer.'
   },
   {
     id: 'Get-EventLog',
@@ -122,6 +119,34 @@ export const mockCommands: BasePowerShellCommand[] = [
     parameters: [{ name: 'Force' }, { name: 'NoWait' }, { name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
     description: 'Stops one or more running services.',
   },
+  {
+    id: 'Disable-ComputerRestore',
+    name: 'Disable-ComputerRestore',
+    category: 'System Management',
+    parameters: [{ name: 'Drive' }],
+    description: 'Disables the System Restore feature on the specified file system drive.'
+  },
+  {
+    id: 'Enable-ComputerRestore',
+    name: 'Enable-ComputerRestore',
+    category: 'System Management',
+    parameters: [{ name: 'Drive' }],
+    description: 'Enables the System Restore feature on the specified file system drive.'
+  },
+  {
+    id: 'Get-ComputerRestorePoint',
+    name: 'Get-ComputerRestorePoint',
+    category: 'System Management',
+    parameters: [{ name: 'RestorePoint' }, { name: 'LastStatus' }],
+    description: 'Gets the restore points on the local computer.'
+  },
+  {
+    id: 'Restore-Computer',
+    name: 'Restore-Computer',
+    category: 'System Management',
+    parameters: [{ name: 'RestorePoint' }],
+    description: 'Starts a system restore on the local computer.'
+  },
 
   // File & Item Management
   {
@@ -156,7 +181,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-ChildItem',
     name: 'Get-ChildItem',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Depth' }, { name: 'Force' }, { name: 'Name' }, { name: 'Attributes' }, { name: 'Directory' }, { name: 'File' }, { name: 'Hidden' }, { name: 'ReadOnly' }, { name: 'System' }],
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Depth' }, { name: 'Force' }, { name: 'Name' }, { name: 'Attributes' }, { name: 'Directory' }, { name: 'File' }, { name: 'Hidden' }, { name: 'ReadOnly' }, { name: 'System' }, { name: 'FollowSymlink' } ],
     description: 'Gets the items and child items in one or more specified locations.',
   },
   {
@@ -167,11 +192,25 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets the content of the item at the specified location.',
   },
   {
+    id: 'Get-Item',
+    name: 'Get-Item',
+    category: 'File & Item Management',
+    parameters: [ { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Credential' }, { name: 'Stream' } ],
+    description: 'Gets the item at the specified location.',
+  },
+  {
     id: 'Get-ItemProperty',
     name: 'Get-ItemProperty',
     category: 'File & Item Management',
     parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Name' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' }],
     description: 'Gets the properties of a specified item.',
+  },
+  {
+    id: 'Get-ItemPropertyValue',
+    name: 'Get-ItemPropertyValue',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Name' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' }],
+    description: 'Gets the value for one or more properties of a specified item.',
   },
   {
     id: 'Get-Location',
@@ -274,6 +313,20 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Adds entries to the session history.'
   },
   {
+    id: 'Add-Member',
+    name: 'Add-Member',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'InputObject'}, {name: 'MemberType'}, {name: 'Name'}, {name: 'Value'}, {name: 'SecondValue'}, {name: 'TypeName'}, {name: 'Force'}, {name: 'PassThru'}, {name: 'NotePropertyName'}, {name: 'NotePropertyValue'}, {name: 'NotePropertyMembers'}],
+    description: 'Adds custom properties and methods to an instance of a PowerShell object.'
+  },
+  {
+    id: 'Add-Type',
+    name: 'Add-Type',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'TypeDefinition'}, {name: 'Path'}, {name: 'LiteralPath'}, {name: 'AssemblyName'}, {name: 'MemberDefinition'}, {name: 'Namespace'}, {name: 'UsingNamespace'}, {name: 'ReferencedAssemblies'}, {name: 'OutputType'}, {name: 'Language'}, {name: 'CodeDomProvider'}, {name: 'CompilerParameters'}, {name: 'IgnoreWarnings'}, {name: 'PassThru'}, {name: 'Name'}],
+    description: 'Adds a Microsoft .NET Framework type (a class or enumeration) to a PowerShell session.'
+  },
+  {
     id: 'Clear-History',
     name: 'Clear-History',
     category: 'PowerShell Core & Scripting',
@@ -299,7 +352,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Get-Command',
     category: 'PowerShell Core & Scripting',
     parameters: [{ name: 'Name' }, { name: 'Verb' }, { name: 'Noun' }, { name: 'Module' }, { name: 'FullyQualifiedModule' }, { name: 'CommandType' }, { name: 'TotalCount' }, { name: 'Syntax' }, { name: 'ShowCommandInfo' }, { name: 'ArgumentList' }, { name: 'All' }, { name: 'ListImported' }, { name: 'ParameterName' }, { name: 'ParameterType' }],
-    description: 'Gets all commands that are installed on the computer, including cmdlets, aliases, functions, filters, scripts, and applications.',
+    description: 'Gets all commands that are installed on the computer.',
   },
   {
     id: 'Get-Date',
@@ -330,6 +383,20 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets an object that represents the current host program.'
   },
   {
+    id: 'Get-Member',
+    name: 'Get-Member',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'InputObject'}, {name: 'Name'}, {name: 'MemberType'}, {name: 'View'}, {name: 'Static'}, {name: 'Force'}],
+    description: 'Gets the properties and methods of objects.'
+  },
+  {
+    id: 'Get-Random',
+    name: 'Get-Random',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'InputObject'}, {name: 'Count'}, {name: 'SetSeed'}, {name: 'Maximum'}, {name: 'Minimum'}],
+    description: 'Gets a random number, or selects objects randomly from a collection.'
+  },
+  {
     id: 'Get-Variable',
     name: 'Get-Variable',
     category: 'PowerShell Core & Scripting',
@@ -356,6 +423,20 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'PowerShell Core & Scripting',
     parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Description' }, { name: 'Option' }, { name: 'PassThru' }, { name: 'Scope' }, { name: 'Force' }],
     description: 'Creates a new alias.'
+  },
+  {
+    id: 'New-Object',
+    name: 'New-Object',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'TypeName'}, {name: 'ArgumentList'}, {name: 'Property'}, {name: 'ComObject'}, {name: 'Strict'}],
+    description: 'Creates an instance of a Microsoft .NET Framework or COM object.'
+  },
+  {
+    id: 'New-TimeSpan',
+    name: 'New-TimeSpan',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{name: 'Start'}, {name: 'End'}, {name: 'Days'}, {name: 'Hours'}, {name: 'Minutes'}, {name: 'Seconds'}],
+    description: 'Creates a TimeSpan object.'
   },
   {
     id: 'New-Variable',
@@ -425,7 +506,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Write-Output',
     category: 'PowerShell Core & Scripting',
     parameters: [{ name: 'InputObject' }, { name: 'NoEnumerate' }],
-    description: 'Sends the specified objects to the next command in the pipeline. If the command is the last command in the pipeline, the objects are displayed in the console.',
+    description: 'Sends the specified objects to the next command in the pipeline.',
   },
   {
     id: 'Write-Verbose',
@@ -445,11 +526,39 @@ export const mockCommands: BasePowerShellCommand[] = [
 
   // Data Handling & Formatting
   {
+    id: 'Compare-Object',
+    name: 'Compare-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'ReferenceObject'}, {name: 'DifferenceObject'}, {name: 'Property'}, {name: 'ExcludeDifferent'}, {name: 'IncludeEqual'}, {name: 'PassThru'}, {name: 'SyncWindow'}, {name: 'Culture'}, {name: 'CaseSensitive'}],
+    description: 'Compares two sets of objects.'
+  },
+  {
+    id: 'ConvertFrom-Csv',
+    name: 'ConvertFrom-Csv',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'InputObject'}, {name: 'Delimiter'}, {name: 'Header'}, {name: 'UseCulture'}],
+    description: 'Converts character-separated value (CSV) data into PSObject type objects.'
+  },
+  {
     id: 'ConvertFrom-Json',
     name: 'ConvertFrom-Json',
     category: 'Data Handling & Formatting',
     parameters: [{ name: 'InputObject' }],
     description: 'Converts a JSON-formatted string to a custom object.',
+  },
+  {
+    id: 'ConvertFrom-StringData',
+    name: 'ConvertFrom-StringData',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'StringData'}],
+    description: 'Converts a string containing one or more key/value pairs to a hash table.'
+  },
+  {
+    id: 'ConvertTo-Csv',
+    name: 'ConvertTo-Csv',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'InputObject'}, {name: 'Delimiter'}, {name: 'NoTypeInformation'}, {name: 'UseCulture'}],
+    description: 'Converts .NET objects into a series of character-separated value (CSV) strings.'
   },
   {
     id: 'ConvertTo-Html',
@@ -519,7 +628,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Measure-Object',
     category: 'Data Handling & Formatting',
     parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Sum' }, { name: 'Average' }, { name: 'Maximum' }, { name: 'Minimum' }, { name: 'Line' }, { name: 'Word' }, { name: 'Character' }, { name: 'IgnoreWhiteSpace' }],
-    description: 'Calculates the numeric properties of objects, and the characters, words, and lines in string objects, such as files of text.',
+    description: 'Calculates the numeric properties of objects, and the characters, words, and lines in string objects.',
   },
   {
     id: 'Select-Object',
@@ -529,12 +638,41 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Selects objects or object properties.',
   },
   {
+    id: 'Select-String',
+    name: 'Select-String',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'Pattern'}, {name: 'Path'}, {name: 'LiteralPath'}, {name: 'InputObject'}, {name: 'SimpleMatch'}, {name: 'CaseSensitive'}, {name: 'Quiet'}, {name: 'List'}, {name: 'Include'}, {name: 'Exclude'}, {name: 'NotMatch'}, {name: 'AllMatches'}, {name: 'Encoding'}, {name: 'Context'}],
+    description: 'Finds text in strings and files.'
+  },
+  {
+    id: 'Select-Xml',
+    name: 'Select-Xml',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'Xml'}, {name: 'Path'}, {name: 'LiteralPath'}, {name: 'Content'}, {name: 'XPath'}, {name: 'Namespace'}],
+    description: 'Finds text in an XML string or document.'
+  },
+  {
     id: 'Sort-Object',
     name: 'Sort-Object',
     category: 'Data Handling & Formatting',
     parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Descending' }, { name: 'Unique' }, { name: 'Culture' }, { name: 'CaseSensitive' }],
     description: 'Sorts objects by property values.',
   },
+  {
+    id: 'Tee-Object',
+    name: 'Tee-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'InputObject'}, {name: 'FilePath'}, {name: 'LiteralPath'}, {name: 'Variable'}, {name: 'Append'}],
+    description: 'Saves command output in a file or variable and also sends it down the pipeline.'
+  },
+  {
+    id: 'Where-Object',
+    name: 'Where-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{name: 'InputObject'}, {name: 'Property'}, {name: 'Value'}, {name: 'FilterScript'} /* Operators like EQ, NE, etc. are used with Property/Value or in FilterScript */],
+    description: 'Selects objects from a collection based on their property values.'
+  },
+
 
   // Networking
   {
@@ -661,7 +799,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Removes an app package from a user account.',
   },
 
-  // Hyper-V (A small selection for brevity)
+  // Hyper-V
   {
     id: 'Get-VM',
     name: 'Get-VM',
@@ -696,5 +834,93 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'Hyper-V',
     parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'Force' }, { name: 'TurnOff' }, { name: 'Save' }, { name: 'PassThru' }],
     description: 'Shuts down, turns off, or saves a virtual machine.',
+  },
+  {
+    id: 'Checkpoint-VM',
+    name: 'Checkpoint-VM',
+    category: 'Hyper-V',
+    parameters: [{name: 'Name'}, {name: 'VM'}, {name: 'SnapshotName'}, {name: 'ComputerName'}, {name: 'AsJob'}, {name: 'Passthru'}],
+    description: 'Creates a checkpoint of a virtual machine.'
+  },
+  {
+    id: 'Get-VMSnapshot',
+    name: 'Get-VMSnapshot',
+    category: 'Hyper-V',
+    parameters: [{name: 'VMName'}, {name: 'ComputerName'}, {name: 'Id'}, {name: 'Name'}, {name: 'SnapshotType'}],
+    description: 'Gets the checkpoints of a virtual machine or a checkpoint.'
+  },
+  {
+    id: 'Restore-VMSnapshot',
+    name: 'Restore-VMSnapshot',
+    category: 'Hyper-V',
+    parameters: [{name: 'Name'}, {name: 'VMName'}, {name: 'ComputerName'}, {name: 'Id'}, {name: 'Passthru'}],
+    description: 'Restores a virtual machine checkpoint.'
+  },
+
+  // Module Management
+  {
+    id: 'Get-Module',
+    name: 'Get-Module',
+    category: 'Module Management',
+    parameters: [{name: 'Name'}, {name: 'ListAvailable'}, {name: 'All'}, {name: 'Refresh'}, {name: 'PSSession'}, {name: 'CimSession'}, {name: 'FullyQualifiedName'}],
+    description: 'Gets the modules that have been imported or that can be imported into the current session.'
+  },
+  {
+    id: 'Import-Module',
+    name: 'Import-Module',
+    category: 'Module Management',
+    parameters: [{name: 'Name'}, {name: 'Assembly'}, {name: 'ModuleInfo'}, {name: 'Global'}, {name: 'Prefix'}, {name: 'Function'}, {name: 'Cmdlet'}, {name: 'Variable'}, {name: 'Alias'}, {name: 'Force'}, {name: 'PassThru'}, {name: 'AsCustomObject'}, {name: 'MinimumVersion'}, {name: 'MaximumVersion'}, {name: 'RequiredVersion'}, {name: 'ArgumentList'}, {name: 'DisableNameChecking'}, {name: 'NoClobber'}, {name: 'Scope'}, {name: 'PSSession'}, {name: 'CimSession'}],
+    description: 'Adds modules to the current session.'
+  },
+  {
+    id: 'New-Module',
+    name: 'New-Module',
+    category: 'Module Management',
+    parameters: [{name: 'Name'}, {name: 'ScriptBlock'}, {name: 'Function'}, {name: 'Cmdlet'}, {name: 'ReturnResult'}, {name: 'AsCustomObject'}, {name: 'ArgumentList'}],
+    description: 'Creates a new dynamic module that exists only in memory.'
+  },
+  {
+    id: 'New-ModuleManifest',
+    name: 'New-ModuleManifest',
+    category: 'Module Management',
+    parameters: [{name: 'Path'}, {name: 'RootModule'}, {name: 'ModuleVersion'}, {name: 'Author'}, {name: 'Description'}, {name: 'CompanyName'}, {name: 'Copyright'}, {name: 'NestedModules'}, {name: 'Guid'}, {name: 'ProcessorArchitecture'}, {name: 'PowerShellVersion'}, {name: 'ClrVersion'}, {name: 'DotNetFrameworkVersion'}, {name: 'PowerShellHostName'}, {name: 'PowerShellHostVersion'}, {name: 'RequiredModules'}, {name: 'TypesToProcess'}, {name: 'FormatsToProcess'}, {name: 'ScriptsToProcess'}, {name: 'RequiredAssemblies'}, {name: 'FileList'}, {name: 'ModuleList'}, {name: 'FunctionsToExport'}, {name: 'AliasesToExport'}, {name: 'VariablesToExport'}, {name: 'CmdletsToExport'}, {name: 'DscResourcesToExport'}, {name: 'CompatiblePSEditions'}, {name: 'PrivateData'}, {name: 'Tags'}, {name: 'ProjectUri'}, {name: 'LicenseUri'}, {name: 'IconUri'}, {name: 'ReleaseNotes'}, {name: 'HelpInfoUri'}, {name: 'PassThru'}, {name: 'DefaultCommandPrefix'}],
+    description: 'Creates a new module manifest (.psd1) file.'
+  },
+  {
+    id: 'Remove-Module',
+    name: 'Remove-Module',
+    category: 'Module Management',
+    parameters: [{name: 'Name'}, {name: 'ModuleInfo'}, {name: 'Force'}, {name: 'FullyQualifiedName'}],
+    description: 'Removes modules from the current session.'
+  },
+  {
+    id: 'Test-ModuleManifest',
+    name: 'Test-ModuleManifest',
+    category: 'Module Management',
+    parameters: [{name: 'Path'}],
+    description: 'Verifies that a module manifest file accurately describes the contents of a module.'
+  },
+
+  // PowerShell Snap-ins (Legacy, but some environments might use them)
+  {
+    id: 'Add-PSSnapin',
+    name: 'Add-PSSnapin',
+    category: 'PowerShell Snap-ins',
+    parameters: [{name: 'Name'}, {name: 'PassThru'}],
+    description: 'Adds one or more Windows PowerShell snap-ins to the current session.'
+  },
+  {
+    id: 'Get-PSSnapin',
+    name: 'Get-PSSnapin',
+    category: 'PowerShell Snap-ins',
+    parameters: [{name: 'Name'}, {name: 'Registered'}],
+    description: 'Gets the Windows PowerShell snap-ins on the computer.'
+  },
+  {
+    id: 'Remove-PSSnapin',
+    name: 'Remove-PSSnapin',
+    category: 'PowerShell Snap-ins',
+    parameters: [{name: 'Name'}, {name: 'PassThru'}],
+    description: 'Removes Windows PowerShell snap-ins from the current session.'
   },
 ];

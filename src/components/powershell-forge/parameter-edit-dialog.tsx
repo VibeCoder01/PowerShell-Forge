@@ -14,15 +14,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ScriptPowerShellCommand } from '@/types/powershell';
-import { FolderOpen } from 'lucide-react';
+import type { ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
+import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { generateUniqueId } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
-interface ParameterEditDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  command: ScriptPowerShellCommand;
-  onSave: (updatedCommand: ScriptPowerShellCommand) => void;
-}
 
 // Heuristic list of parameter names that typically expect a file path.
 const pathParamNames = [
@@ -34,6 +31,26 @@ const pathParamNames = [
 // Parameter names that typically expect just a filename.
 const fileNameParamNames = ['Name', 'FileName'];
 
+const COMMON_PARAMETERS_LIST: PowerShellCommandParameter[] = [
+  { name: 'Verbose' }, { name: 'Debug' }, { name: 'ErrorAction' }, 
+  { name: 'WarningAction' }, { name: 'InformationAction' }, { name: 'ErrorVariable' }, 
+  { name: 'WarningVariable' }, { name: 'InformationVariable' }, { name: 'OutVariable' }, 
+  { name: 'OutBuffer' }, { name: 'PipelineVariable' }, { name: 'WhatIf' }, { name: 'Confirm' }
+];
+
+
+interface ParameterEditDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  command: ScriptPowerShellCommand;
+  onSave: (updatedCommand: ScriptPowerShellCommand) => void;
+}
+
+interface AdHocParam {
+  id: string;
+  name: string;
+}
+
 export function ParameterEditDialog({
   isOpen,
   onOpenChange,
@@ -41,12 +58,25 @@ export function ParameterEditDialog({
   onSave,
 }: ParameterEditDialogProps) {
   const [currentParameterValues, setCurrentParameterValues] = useState<{ [key: string]: string }>({});
+  const [adHocParams, setAdHocParams] = useState<AdHocParam[]>([]);
+  const [newAdHocName, setNewAdHocName] = useState('');
+  const [newAdHocValue, setNewAdHocValue] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [paramNameForFileBrowse, setParamNameForFileBrowse] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (command) {
       setCurrentParameterValues({ ...command.parameterValues });
+      
+      // Initialize ad-hoc parameters from existing values not in defined or common params
+      const definedParamNames = command.parameters.map(p => p.name);
+      const commonParamNames = COMMON_PARAMETERS_LIST.map(p => p.name);
+      const existingAdHoc = Object.keys(command.parameterValues)
+        .filter(key => !definedParamNames.includes(key) && !commonParamNames.includes(key))
+        .map(name => ({ id: generateUniqueId(), name }));
+      setAdHocParams(existingAdHoc);
     }
   }, [command]);
 
@@ -57,6 +87,9 @@ export function ParameterEditDialog({
   const handleSubmit = () => {
     onSave({ ...command, parameterValues: currentParameterValues });
     onOpenChange(false);
+    // Reset ad-hoc temp fields
+    setNewAdHocName('');
+    setNewAdHocValue('');
   };
 
   const handleBrowseClick = (paramName: string) => {
@@ -68,65 +101,192 @@ export function ParameterEditDialog({
     const file = event.target.files?.[0];
     if (file && paramNameForFileBrowse) {
       const selectedFileName = file.name;
+       // Only populate the parameter for which "Browse" was clicked.
+      // User needs to manually adjust if it's a path parameter.
       handleValueChange(paramNameForFileBrowse, selectedFileName);
     }
-    // Reset file input to allow selecting the same file again
     if (event.target) {
       event.target.value = '';
     }
     setParamNameForFileBrowse(null);
   };
 
+  const handleAddAdHocParam = () => {
+    if (!newAdHocName.trim()) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Parameter name cannot be empty.' });
+      return;
+    }
+    if (command.parameters.some(p => p.name === newAdHocName.trim()) || 
+        COMMON_PARAMETERS_LIST.some(p => p.name === newAdHocName.trim()) ||
+        adHocParams.some(p => p.name === newAdHocName.trim())) {
+      toast({ variant: 'destructive', title: 'Error', description: `Parameter "${newAdHocName.trim()}" already exists or is a common parameter.` });
+      return;
+    }
+    setAdHocParams(prev => [...prev, { id: generateUniqueId(), name: newAdHocName.trim() }]);
+    setCurrentParameterValues(prev => ({ ...prev, [newAdHocName.trim()]: newAdHocValue }));
+    setNewAdHocName('');
+    setNewAdHocValue('');
+  };
+
+  const handleRemoveAdHocParam = (idToRemove: string) => {
+    const paramToRemove = adHocParams.find(p => p.id === idToRemove);
+    if (paramToRemove) {
+      setAdHocParams(prev => prev.filter(p => p.id !== idToRemove));
+      setCurrentParameterValues(prev => {
+        const updated = { ...prev };
+        delete updated[paramToRemove.name];
+        return updated;
+      });
+    }
+  };
+
+
   if (!command) return null;
+
+  const specificParameters = command.parameters.filter(
+    param => !COMMON_PARAMETERS_LIST.some(commonParam => commonParam.name.toLowerCase() === param.name.toLowerCase())
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl"> {/* Increased width */}
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl"> {/* Increased width */}
         <DialogHeader>
-          <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="h-5 w-5 text-primary" />
+            Edit Parameters for: {command.name}
+          </DialogTitle>
           <DialogDescription>
-            Modify the parameter values for this command instance. For path or filename parameters, you can browse for a file.
-            The browser will only provide the filename; you may need to adjust the path manually for path parameters.
+            Modify specific, common, or add custom parameters for this command instance.
+            For path parameters, use Browse to get the filename, then edit the path manually.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] pr-6">
-          <div className="grid gap-y-6 gap-x-4 py-4">
-            {command.parameters.length === 0 && (
-                <p className="text-sm text-muted-foreground">This command has no parameters.</p>
-            )}
-            {command.parameters.map((param) => {
-              const isPotentiallyPathOrFileName =
-                pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
-                fileNameParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
+        <ScrollArea className="max-h-[65vh] pr-2">
+          <div className="space-y-6 py-4 pr-4">
 
-              return (
-                <div key={param.name} className="grid grid-cols-5 items-center gap-x-4">
-                  <Label htmlFor={param.name} className="text-right col-span-1 whitespace-nowrap">
-                    {param.name}
-                  </Label>
-                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'} py-1 pr-1`}> {/* Added pr-1 */}
-                    <Input
-                      id={param.name}
-                      value={currentParameterValues[param.name] || ''}
-                      onChange={(e) => handleValueChange(param.name, e.target.value)}
-                      className="flex-grow"
-                      placeholder={`Value for ${param.name}`}
-                    />
+            {specificParameters.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-md font-semibold text-foreground">Specific Parameters</h3>
+                {specificParameters.map((param) => {
+                  const isPotentiallyPathOrFileName =
+                    pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
+                    fileNameParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
+
+                  return (
+                    <div key={param.name} className="grid grid-cols-1 md:grid-cols-5 items-center gap-x-4 gap-y-1">
+                      <Label htmlFor={param.name} className="md:text-right col-span-1 whitespace-nowrap pr-2">
+                        {param.name}
+                      </Label>
+                      <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'md:col-span-3' : 'md:col-span-4'} py-1 pr-1`}>
+                        <Input
+                          id={param.name}
+                          value={currentParameterValues[param.name] || ''}
+                          onChange={(e) => handleValueChange(param.name, e.target.value)}
+                          className="flex-grow"
+                          placeholder={`Value for ${param.name}`}
+                        />
+                      </div>
+                      {isPotentiallyPathOrFileName && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBrowseClick(param.name)}
+                          className="md:col-span-1 w-full md:w-auto mt-1 md:mt-0"
+                          aria-label={`Browse for ${param.name}`}
+                        >
+                          <FolderOpen className="mr-2 h-4 w-4" /> Browse
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {specificParameters.length === 0 && !adHocParams.length && (
+                 <p className="text-sm text-muted-foreground">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
+            )}
+
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="common-parameters">
+                <AccordionTrigger className="text-md font-semibold hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <ChevronsUpDown className="h-4 w-4" /> Common Parameters
                   </div>
-                  {isPotentiallyPathOrFileName && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBrowseClick(param.name)}
-                      className="col-span-1"
-                      aria-label={`Browse for ${param.name}`}
-                    >
-                      <FolderOpen className="mr-2 h-4 w-4" /> Browse
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 space-y-4">
+                  {COMMON_PARAMETERS_LIST.map((param) => (
+                    <div key={param.name} className="grid grid-cols-1 md:grid-cols-5 items-center gap-x-4 gap-y-1">
+                      <Label htmlFor={`common-${param.name}`} className="md:text-right col-span-1 whitespace-nowrap pr-2">
+                        {param.name}
+                      </Label>
+                      <div className="md:col-span-4 py-1 pr-1">
+                        <Input
+                          id={`common-${param.name}`}
+                          value={currentParameterValues[param.name] || ''}
+                          onChange={(e) => handleValueChange(param.name, e.target.value)}
+                          placeholder={`Value for ${param.name} (e.g., $true, SilentlyContinue)`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="adhoc-parameters">
+                <AccordionTrigger className="text-md font-semibold hover:no-underline">
+                   <div className="flex items-center gap-2">
+                    <ChevronsUpDown className="h-4 w-4" /> Additional Custom Parameters ({adHocParams.length})
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 space-y-4">
+                  {adHocParams.map((param) => (
+                    <div key={param.id} className="grid grid-cols-1 md:grid-cols-5 items-center gap-x-4 gap-y-1">
+                      <Label htmlFor={`adhoc-${param.id}`} className="md:text-right col-span-1 whitespace-nowrap pr-2">
+                        {param.name}
+                      </Label>
+                       <div className="md:col-span-3 py-1 pr-1">
+                        <Input
+                          id={`adhoc-${param.id}`}
+                          value={currentParameterValues[param.name] || ''}
+                          onChange={(e) => handleValueChange(param.name, e.target.value)}
+                          placeholder={`Value for ${param.name}`}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveAdHocParam(param.id)}
+                        className="md:col-span-1 text-destructive hover:text-destructive-foreground hover:bg-destructive/90"
+                        aria-label={`Remove parameter ${param.name}`}
+                      >
+                        <MinusCircle className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="pt-4 space-y-2 border-t mt-4">
+                    <Label className="text-sm font-medium">Add New Custom Parameter</Label>
+                    <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                      <Input
+                        value={newAdHocName}
+                        onChange={(e) => setNewAdHocName(e.target.value)}
+                        placeholder="Parameter Name"
+                        className="flex-grow"
+                      />
+                      <Input
+                        value={newAdHocValue}
+                        onChange={(e) => setNewAdHocValue(e.target.value)}
+                        placeholder="Parameter Value"
+                        className="flex-grow"
+                      />
+                      <Button onClick={handleAddAdHocParam} variant="outline" size="sm" className="shrink-0">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            
           </div>
         </ScrollArea>
         <input
@@ -136,7 +296,7 @@ export function ParameterEditDialog({
           className="hidden"
           aria-hidden="true"
         />
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
