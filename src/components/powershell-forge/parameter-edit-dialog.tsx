@@ -104,7 +104,7 @@ export function ParameterEditDialog({
                   <Label htmlFor={param.name} className="text-right col-span-1 whitespace-nowrap">
                     {param.name}
                   </Label>
-                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'} py-1`}> {/* Added py-1 for vertical padding */}
+                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'} py-1 pr-1`}> {/* Added pr-1 */}
                     <Input
                       id={param.name}
                       value={currentParameterValues[param.name] || ''}
