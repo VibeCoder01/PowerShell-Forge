@@ -70,15 +70,21 @@ export function ParameterEditDialog({
       const selectedFileName = file.name;
       
       // Update the parameter that triggered the browse
+      // For security reasons, browsers only provide the filename, not the full path.
+      // The user will need to manually edit the path if needed.
       handleValueChange(paramNameForFileBrowse, selectedFileName);
 
       // Check if there's a corresponding Name/FileName parameter to also populate
-      const nameParam = command.parameters.find(p => 
-        fileNameParamNames.some(name => name.toLowerCase() === p.name.toLowerCase())
-      );
-
-      if (nameParam) {
-        handleValueChange(nameParam.name, selectedFileName);
+      // This applies if the user browsed for a "path" type parameter.
+      const isBrowsedParamAPathType = pathParamNames.some(name => name.toLowerCase() === paramNameForFileBrowse.toLowerCase());
+      
+      if (isBrowsedParamAPathType) {
+        const nameParamToPopulate = command.parameters.find(p => 
+          fileNameParamNames.some(name => name.toLowerCase() === p.name.toLowerCase())
+        );
+        if (nameParamToPopulate && nameParamToPopulate.name !== paramNameForFileBrowse) {
+          handleValueChange(nameParamToPopulate.name, selectedFileName);
+        }
       }
     }
     // Reset file input to allow selecting the same file again
@@ -106,13 +112,16 @@ export function ParameterEditDialog({
                 <p className="text-sm text-muted-foreground">This command has no parameters.</p>
             )}
             {command.parameters.map((param) => {
-              const isPathParam = pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
+              const isPotentiallyPathOrFileName = 
+                pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
+                fileNameParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
+              
               return (
                 <div key={param.name} className="grid grid-cols-5 items-center gap-x-4">
-                  <Label htmlFor={param.name} className="text-right col-span-1 truncate">
+                  <Label htmlFor={param.name} className="text-right col-span-1">
                     -{param.name}
                   </Label>
-                  <div className={`flex items-center gap-2 ${isPathParam ? 'col-span-3' : 'col-span-4'}`}>
+                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'}`}>
                     <Input
                       id={param.name}
                       value={currentParameterValues[param.name] || ''}
@@ -121,7 +130,7 @@ export function ParameterEditDialog({
                       placeholder={`Value for ${param.name}`}
                     />
                   </div>
-                  {isPathParam && (
+                  {isPotentiallyPathOrFileName && (
                     <Button 
                       variant="outline" 
                       size="sm" 
