@@ -49,7 +49,6 @@ export default function PowerShellForgePage() {
   const [addScriptElements, setAddScriptElements] = useState<ScriptElement[]>([]);
   const [launchScriptElements, setLaunchScriptElements] = useState<ScriptElement[]>([]);
   const [removeScriptElements, setRemoveScriptElements] = useState<ScriptElement[]>([]);
-  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
 
   const { toast } = useToast();
 
@@ -92,8 +91,6 @@ export default function PowerShellForgePage() {
     loadFromLocalStorage('powershellForge_launchScriptElements', setLaunchScriptElements);
     loadFromLocalStorage('powershellForge_removeScriptElements', setRemoveScriptElements);
     
-    const savedAiToggle = localStorage.getItem('powershellForge_aiSuggestionsEnabled');
-    if (savedAiToggle) setIsAiSuggestionsEnabled(savedAiToggle === 'true');
   }, []);
 
   useEffect(() => {
@@ -105,9 +102,6 @@ export default function PowerShellForgePage() {
   useEffect(() => {
     localStorage.setItem('powershellForge_removeScriptElements', JSON.stringify(removeScriptElements));
   }, [removeScriptElements]);
-  useEffect(() => {
-    localStorage.setItem('powershellForge_aiSuggestionsEnabled', String(isAiSuggestionsEnabled));
-  }, [isAiSuggestionsEnabled]);
   useEffect(() => {
     localStorage.setItem('powershellForge_customCommands', JSON.stringify(customCommands));
   }, [customCommands]);
@@ -173,10 +167,6 @@ export default function PowerShellForgePage() {
     toast({ title: 'All Scripts Loaded', description: 'All scripts have been loaded successfully.' });
   };
   
-  const handleAiSuggestionToggle = useCallback(() => {
-    setIsAiSuggestionsEnabled(prev => !prev);
-  }, []);
-
   const handleAddNewCustomCommand = useCallback((commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[] }) => {
     const newCustomCommand: BasePowerShellCommand = {
       ...commandData,
@@ -198,7 +188,7 @@ export default function PowerShellForgePage() {
           PowerShell Forge
         </h1>
         <p className="text-sm text-muted-foreground">
-          AI-assisted PowerShell script creation for managing applications.
+          Create and manage PowerShell scripts for applications.
         </p>
       </header>
       <main className="flex-grow grid grid-cols-1 md:grid-cols-10 gap-4 overflow-hidden">
@@ -216,7 +206,6 @@ export default function PowerShellForgePage() {
             scriptType="add"
             scriptElements={addScriptElements}
             setScriptElements={setAddScriptElements}
-            isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
             baseCommands={allAvailableCommands}
           />
         </div>
@@ -227,7 +216,6 @@ export default function PowerShellForgePage() {
             scriptType="launch"
             scriptElements={launchScriptElements}
             setScriptElements={setLaunchScriptElements}
-            isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
             baseCommands={allAvailableCommands}
           />
         </div>
@@ -238,7 +226,6 @@ export default function PowerShellForgePage() {
             scriptType="remove"
             scriptElements={removeScriptElements}
             setScriptElements={setRemoveScriptElements}
-            isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
             baseCommands={allAvailableCommands}
           />
         </div>
@@ -248,8 +235,6 @@ export default function PowerShellForgePage() {
             onLoadScript={handleLoadScript} 
             onSaveAllScripts={handleSaveAllScripts}
             onLoadAllScripts={handleLoadAllScripts} 
-            isAiSuggestionsEnabled={isAiSuggestionsEnabled}
-            onAiSuggestionToggle={handleAiSuggestionToggle}
           />
         </div>
       </main>
