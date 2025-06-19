@@ -69,13 +69,10 @@ export function ParameterEditDialog({
     if (file && paramNameForFileBrowse) {
       const selectedFileName = file.name;
       
-      // Update the parameter that triggered the browse
-      // For security reasons, browsers only provide the filename, not the full path.
-      // The user will need to manually edit the path if needed.
+      // Populate the parameter that triggered the browse with just the filename
       handleValueChange(paramNameForFileBrowse, selectedFileName);
 
-      // Check if there's a corresponding Name/FileName parameter to also populate
-      // This applies if the user browsed for a "path" type parameter.
+      // If the browsed parameter was a "path" type, also try to populate a "Name" or "FileName" parameter
       const isBrowsedParamAPathType = pathParamNames.some(name => name.toLowerCase() === paramNameForFileBrowse.toLowerCase());
       
       if (isBrowsedParamAPathType) {
@@ -98,7 +95,7 @@ export function ParameterEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl"> {/* Increased width */}
+      <DialogContent className="sm:max-w-3xl"> {/* Increased width from 2xl to 3xl */}
         <DialogHeader>
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
@@ -118,8 +115,8 @@ export function ParameterEditDialog({
               
               return (
                 <div key={param.name} className="grid grid-cols-5 items-center gap-x-4">
-                  <Label htmlFor={param.name} className="text-right col-span-1">
-                    -{param.name}
+                  <Label htmlFor={param.name} className="text-right col-span-1 whitespace-nowrap">
+                    {param.name} {/* Removed leading hyphen */}
                   </Label>
                   <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'}`}>
                     <Input
