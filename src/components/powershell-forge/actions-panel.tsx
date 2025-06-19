@@ -1,19 +1,22 @@
+
 'use client';
 
+import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Save, FolderOpen, Settings2, Download, Upload, FileText, Brain } from 'lucide-react';
-import React, { useRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { Save, FolderOpen, Settings2, Download, Upload, FileText, Brain, KeyRound } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { ScriptType, ScriptElement } from '@/types/powershell'; // Updated import
+import type { ScriptType, ScriptElement } from '@/types/powershell';
+import { useToast } from '@/hooks/use-toast';
 
 interface ActionsPanelProps {
   onSaveScript: (type: ScriptType) => void;
-  onLoadScript: (type: ScriptType, content: string) => void; // Expects plain text for .ps1
+  onLoadScript: (type: ScriptType, content: string) => void;
   onSaveAllScripts: () => void;
-  onLoadAllScripts: (scripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => void; // Expects structured data
+  onLoadAllScripts: (scripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => void;
   isAiSuggestionsEnabled: boolean;
   onAiSuggestionToggle: () => void;
 }
@@ -33,6 +36,16 @@ export function ActionsPanel({
     all: useRef<HTMLInputElement>(null),
   };
 
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('geminiApiKey');
+    if (storedApiKey) {
+      setGeminiApiKey(storedApiKey);
+    }
+  }, []);
+
   const handleFileLoad = (type: ScriptType | 'all', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -42,11 +55,10 @@ export function ActionsPanel({
         if (type === 'all') {
           try {
             const parsedScripts = JSON.parse(content);
-            // Basic validation for the structure of loaded 'all scripts' data
             if (
               parsedScripts &&
               typeof parsedScripts === 'object' &&
-              Array.isArray(parsedScripts.add) && // Check if 'add' is an array (further checks can be added for ScriptElement structure)
+              Array.isArray(parsedScripts.add) && 
               Array.isArray(parsedScripts.launch) &&
               Array.isArray(parsedScripts.remove)
             ) {
@@ -58,17 +70,25 @@ export function ActionsPanel({
             alert('Error parsing "all scripts" file. Ensure it is a valid JSON.');
           }
         } else {
-          // For individual .ps1 files, pass raw text content
           onLoadScript(type as ScriptType, content);
         }
       };
       reader.readAsText(file);
-      event.target.value = ''; 
+      if (event.target) event.target.value = ''; 
     }
   };
 
   const triggerFileInput = (type: ScriptType | 'all') => {
     fileInputRefs[type].current?.click();
+  };
+
+  const handleSaveApiKey = () => {
+    localStorage.setItem('geminiApiKey', geminiApiKey);
+    toast({
+      title: 'API Key Saved to Browser',
+      description: "Key saved in browser storage. To apply it for AI features, tell the AI Assistant in chat: 'Update my Gemini API key to [YOUR_API_KEY]'. A server restart may be needed after the .env file is updated.",
+      duration: 9000, 
+    });
   };
 
   return (
@@ -94,7 +114,7 @@ export function ActionsPanel({
                 </Button>
                 <input
                   type="file"
-                  accept=".ps1,.txt" // Individual scripts are ps1 or txt
+                  accept=".ps1,.txt"
                   ref={fileInputRefs[type]}
                   onChange={(e) => handleFileLoad(type, e)}
                   className="hidden"
@@ -115,7 +135,7 @@ export function ActionsPanel({
                 </Button>
                  <input
                   type="file"
-                  accept=".json" // All scripts are saved/loaded as JSON
+                  accept=".json"
                   ref={fileInputRefs.all}
                   onChange={(e) => handleFileLoad('all', e)}
                   className="hidden"
@@ -129,7 +149,7 @@ export function ActionsPanel({
 
         <div>
           <h3 className="text-md font-semibold mb-3 flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />AI Settings</h3>
-          <div className="flex items-center justify-between p-3 border rounded-md bg-background/50">
+          <div className="flex items-center justify-between p-3 border rounded-md bg-background/50 mb-3">
             <Label htmlFor="global-ai-suggestions" className="text-sm font-medium">
               Enable AI Suggestions
             </Label>
@@ -140,12 +160,33 @@ export function ActionsPanel({
               aria-label="Toggle AI suggestions globally"
             />
           </div>
-           <p className="text-xs text-muted-foreground mt-2 px-1">
+           <p className="text-xs text-muted-foreground mt-2 px-1 mb-4">
             When enabled, the "Suggest with AI" button in script editors will become active.
           </p>
+
+          <div className="p-3 border rounded-md bg-background/50">
+            <Label htmlFor="gemini-api-key" className="text-sm font-medium flex items-center gap-2 mb-2">
+              <KeyRound className="h-4 w-4" /> Google Gemini API Key
+            </Label>
+            <Input
+              id="gemini-api-key"
+              type="password"
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              placeholder="Enter your Gemini API Key"
+              className="mb-2"
+            />
+            <Button onClick={handleSaveApiKey} size="sm" className="w-full">
+              <Save className="mr-2 h-4 w-4" /> Save Key to Browser
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              This saves the key in your browser. For AI features to use it, provide the key to the AI Assistant in chat for .env update.
+            </p>
+          </div>
         </div>
 
       </CardContent>
     </Card>
   );
 }
+
