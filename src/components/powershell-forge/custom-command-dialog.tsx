@@ -133,7 +133,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6 -mr-6">
           <div className="grid gap-4 py-4 pr-6">
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 pl-1">
               <Label htmlFor="custom-command-name">Command Name <span className="text-destructive">*</span></Label>
               <Input
                 id="custom-command-name"
@@ -142,7 +142,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
                 placeholder="e.g., Start-MyApplication"
               />
             </div>
-             <div className="grid gap-1.5">
+             <div className="grid gap-1.5 pl-1">
               <Label htmlFor="custom-command-category">Category <span className="text-destructive">*</span></Label>
               <Input
                 id="custom-command-category"
@@ -155,7 +155,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
                 {commonCategories.map(cat => <option key={cat} value={cat} />)}
               </datalist>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 pl-1">
               <Label htmlFor="custom-command-description">Description</Label>
               <Textarea
                 id="custom-command-description"
@@ -165,7 +165,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
                 rows={3}
               />
             </div>
-            <div>
+            <div className="pl-1">
               <Label className="mb-2 block">Parameters</Label>
               {parameters.length === 0 && (
                 <p className="text-sm text-muted-foreground mb-2">No parameters defined yet.</p>
