@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -90,9 +89,10 @@ export function ScriptEditorColumn({
       });
       setShowParameterDialog(true);
     } else {
+      // Fallback for custom commands or commands not in baseCommands (should ideally not happen for non-custom)
       setEditingCommand(command); 
       setShowParameterDialog(true);
-      toast({variant: 'destructive', title: 'Warning', description: `Base command details for ${command.name} not found. Editing with current parameters.`});
+      toast({variant: 'default', title: 'Editing Command', description: `Editing parameters for ${command.name}. Base command details might be limited if it's a fully custom entry not in the library.`});
     }
   };
 
@@ -134,29 +134,42 @@ export function ScriptEditorColumn({
             {scriptElements.length === 0 && (
               <p className="text-muted-foreground text-center py-10">Drag commands here...</p>
             )}
-            {scriptElements.map((element) => (
-              <div key={element.instanceId} className="group relative flex items-center">
-                {element.type === 'command' ? (
-                  <ScriptCommandChip
-                    command={element}
-                    onClick={() => handleEditCommand(element)}
-                  />
-                ) : (
-                  <div className="p-2 border border-transparent rounded hover:border-muted-foreground/50 flex-grow break-all">
-                    {element.content || <span className="text-muted-foreground">[Empty line]</span>}
-                  </div>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="ml-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2 bg-card hover:bg-destructive/20"
-                  onClick={() => handleRemoveElement(element.instanceId)}
-                  aria-label="Remove script element"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
+            {scriptElements.map((element) => {
+              let hasUnsetParameters = false;
+              if (element.type === 'command') {
+                const cmdElement = element as ScriptPowerShellCommand;
+                const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
+                const allValuesAreEmpty = Object.values(cmdElement.parameterValues).every(val => val === '');
+                if (hasDefinedParams && allValuesAreEmpty) {
+                  hasUnsetParameters = true;
+                }
+              }
+
+              return (
+                <div key={element.instanceId} className="group relative flex items-center">
+                  {element.type === 'command' ? (
+                    <ScriptCommandChip
+                      command={element}
+                      onClick={() => handleEditCommand(element)}
+                      hasUnsetParameters={hasUnsetParameters}
+                    />
+                  ) : (
+                    <div className="p-2 border border-transparent rounded hover:border-muted-foreground/50 flex-grow break-all">
+                      {(element as RawScriptLine).content || <span className="text-muted-foreground">[Empty line]</span>}
+                    </div>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="ml-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2 bg-card hover:bg-destructive/20"
+                    onClick={() => handleRemoveElement(element.instanceId)}
+                    aria-label="Remove script element"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </ScrollArea>
       </CardContent>
