@@ -4,90 +4,6 @@ import type { BasePowerShellCommand } from '@/types/powershell';
 export const mockCommands: BasePowerShellCommand[] = [
   // System Management
   {
-    id: 'Get-Process',
-    name: 'Get-Process',
-    category: 'System Management',
-    parameters: [{ name: 'Name' }, { name: 'Id' }, { name: 'InputObject' }, { name: 'IncludeUserName' }, { name: 'ComputerName' }, { name: 'Module' }, { name: 'FileVersionInfo' }],
-    description: 'Gets the processes that are running on the local computer or a remote computer.',
-  },
-  {
-    id: 'Start-Process',
-    name: 'Start-Process',
-    category: 'System Management',
-    parameters: [{ name: 'FilePath' }, { name: 'ArgumentList' }, { name: 'Credential' }, { name: 'WorkingDirectory' }, { name: 'LoadUserProfile' }, { name: 'NoNewWindow' }, { name: 'PassThru' }, { name: 'RedirectStandardError' }, { name: 'RedirectStandardInput' }, { name: 'RedirectStandardOutput' }, { name: 'Verb' }, { name: 'WindowStyle' }, { name: 'Wait' }, { name: 'UseNewEnvironment' }],
-    description: 'Starts one or more processes on the local computer.',
-  },
-  {
-    id: 'Stop-Process',
-    name: 'Stop-Process',
-    category: 'System Management',
-    parameters: [{ name: 'Name' }, { name: 'Id' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'Force' }],
-    description: 'Stops one or more running processes.',
-  },
-  {
-    id: 'Get-Service',
-    name: 'Get-Service',
-    category: 'System Management',
-    parameters: [{ name: 'Name' }, { name: 'ComputerName' }, { name: 'DependentServices' }, { name: 'RequiredServices' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'InputObject' }],
-    description: 'Gets the services on a local or remote computer.',
-  },
-  {
-    id: 'Start-Service',
-    name: 'Start-Service',
-    category: 'System Management',
-    parameters: [{ name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
-    description: 'Starts one or more stopped services.',
-  },
-  {
-    id: 'Stop-Service',
-    name: 'Stop-Service',
-    category: 'System Management',
-    parameters: [{ name: 'Force' }, { name: 'NoWait' }, { name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
-    description: 'Stops one or more running services.',
-  },
-  {
-    id: 'Restart-Service',
-    name: 'Restart-Service',
-    category: 'System Management',
-    parameters: [{ name: 'Force' }, { name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
-    description: 'Stops and then starts one or more services.',
-  },
-  {
-    id: 'Get-EventLog',
-    name: 'Get-EventLog',
-    category: 'System Management',
-    parameters: [{ name: 'LogName' }, { name: 'ComputerName' }, { name: 'Newest' }, { name: 'After' }, { name: 'Before' }, { name: 'UserName' }, { name: 'InstanceId' }, { name: 'Index' }, { name: 'EntryType' }, { name: 'Source' }, { name: 'Message' }, { name: 'AsBaseObject' }, { name: 'List' }, { name: 'AsString' }],
-    description: 'Gets events in local or remote event logs.',
-  },
-  {
-    id: 'Clear-EventLog',
-    name: 'Clear-EventLog',
-    category: 'System Management',
-    parameters: [{ name: 'LogName' }, { name: 'ComputerName' }],
-    description: 'Clears all entries from specified event logs on the local or remote computers.',
-  },
-  {
-    id: 'Get-HotFix',
-    name: 'Get-HotFix',
-    category: 'System Management',
-    parameters: [{ name: 'Id' }, { name: 'Description' }, { name: 'ComputerName' }, { name: 'Credential' }],
-    description: 'Gets the hotfixes that have been applied to the local and remote computers.',
-  },
-  {
-    id: 'Restart-Computer',
-    name: 'Restart-Computer',
-    category: 'System Management',
-    parameters: [{ name: 'ComputerName' }, { name: 'Force' }, { name: 'Wait' }, { name: 'Timeout' }, { name: 'For' }, { name: 'Delay' }, { name: 'Credential' }, { name: 'WsmanAuthentication' }, { name: 'DcomAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
-    description: 'Restarts the operating system on local and remote computers.',
-  },
-  {
-    id: 'Stop-Computer',
-    name: 'Stop-Computer',
-    category: 'System Management',
-    parameters: [{ name: 'ComputerName' }, { name: 'Force' }, { name: 'Credential' }, { name: 'WsmanAuthentication' }, { name: 'DcomAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
-    description: 'Shuts down local and remote computers.',
-  },
-  {
     id: 'Add-Computer',
     name: 'Add-Computer',
     category: 'System Management',
@@ -100,6 +16,13 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'System Management',
     parameters: [ { name: 'Description' }, { name: 'RestorePointType' } ],
     description: 'Creates a system restore point on the local computer.',
+  },
+  {
+    id: 'Clear-EventLog',
+    name: 'Clear-EventLog',
+    category: 'System Management',
+    parameters: [{ name: 'LogName' }, { name: 'ComputerName' }],
+    description: 'Clears all entries from specified event logs on the local or remote computers.',
   },
   {
     id: 'Clear-RecycleBin',
@@ -122,22 +45,85 @@ export const mockCommands: BasePowerShellCommand[] = [
     parameters: [{ name: 'RestorePoint' }, { name: 'LastStatus' }],
     description: 'Gets the restore points on the local computer.'
   },
+  {
+    id: 'Get-EventLog',
+    name: 'Get-EventLog',
+    category: 'System Management',
+    parameters: [{ name: 'LogName' }, { name: 'ComputerName' }, { name: 'Newest' }, { name: 'After' }, { name: 'Before' }, { name: 'UserName' }, { name: 'InstanceId' }, { name: 'Index' }, { name: 'EntryType' }, { name: 'Source' }, { name: 'Message' }, { name: 'AsBaseObject' }, { name: 'List' }, { name: 'AsString' }],
+    description: 'Gets events in local or remote event logs.',
+  },
+  {
+    id: 'Get-HotFix',
+    name: 'Get-HotFix',
+    category: 'System Management',
+    parameters: [{ name: 'Id' }, { name: 'Description' }, { name: 'ComputerName' }, { name: 'Credential' }],
+    description: 'Gets the hotfixes that have been applied to the local and remote computers.',
+  },
+  {
+    id: 'Get-Process',
+    name: 'Get-Process',
+    category: 'System Management',
+    parameters: [{ name: 'Name' }, { name: 'Id' }, { name: 'InputObject' }, { name: 'IncludeUserName' }, { name: 'ComputerName' }, { name: 'Module' }, { name: 'FileVersionInfo' }],
+    description: 'Gets the processes that are running on the local computer or a remote computer.',
+  },
+  {
+    id: 'Get-Service',
+    name: 'Get-Service',
+    category: 'System Management',
+    parameters: [{ name: 'Name' }, { name: 'ComputerName' }, { name: 'DependentServices' }, { name: 'RequiredServices' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'InputObject' }],
+    description: 'Gets the services on a local or remote computer.',
+  },
+  {
+    id: 'Restart-Computer',
+    name: 'Restart-Computer',
+    category: 'System Management',
+    parameters: [{ name: 'ComputerName' }, { name: 'Force' }, { name: 'Wait' }, { name: 'Timeout' }, { name: 'For' }, { name: 'Delay' }, { name: 'Credential' }, { name: 'WsmanAuthentication' }, { name: 'DcomAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
+    description: 'Restarts the operating system on local and remote computers.',
+  },
+  {
+    id: 'Restart-Service',
+    name: 'Restart-Service',
+    category: 'System Management',
+    parameters: [{ name: 'Force' }, { name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
+    description: 'Stops and then starts one or more services.',
+  },
+  {
+    id: 'Start-Process',
+    name: 'Start-Process',
+    category: 'System Management',
+    parameters: [{ name: 'FilePath' }, { name: 'ArgumentList' }, { name: 'Credential' }, { name: 'WorkingDirectory' }, { name: 'LoadUserProfile' }, { name: 'NoNewWindow' }, { name: 'PassThru' }, { name: 'RedirectStandardError' }, { name: 'RedirectStandardInput' }, { name: 'RedirectStandardOutput' }, { name: 'Verb' }, { name: 'WindowStyle' }, { name: 'Wait' }, { name: 'UseNewEnvironment' }],
+    description: 'Starts one or more processes on the local computer.',
+  },
+  {
+    id: 'Start-Service',
+    name: 'Start-Service',
+    category: 'System Management',
+    parameters: [{ name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
+    description: 'Starts one or more stopped services.',
+  },
+  {
+    id: 'Stop-Computer',
+    name: 'Stop-Computer',
+    category: 'System Management',
+    parameters: [{ name: 'ComputerName' }, { name: 'Force' }, { name: 'Credential' }, { name: 'WsmanAuthentication' }, { name: 'DcomAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
+    description: 'Shuts down local and remote computers.',
+  },
+  {
+    id: 'Stop-Process',
+    name: 'Stop-Process',
+    category: 'System Management',
+    parameters: [{ name: 'Name' }, { name: 'Id' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'Force' }],
+    description: 'Stops one or more running processes.',
+  },
+  {
+    id: 'Stop-Service',
+    name: 'Stop-Service',
+    category: 'System Management',
+    parameters: [{ name: 'Force' }, { name: 'NoWait' }, { name: 'Name' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'DisplayName' }, { name: 'Include' }, { name: 'Exclude' }],
+    description: 'Stops one or more running services.',
+  },
 
   // File & Item Management
-  {
-    id: 'Get-Content',
-    name: 'Get-Content',
-    category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'ReadCount' }, { name: 'TotalCount' }, { name: 'Tail' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Credential' }, { name: 'Delimiter' }, { name: 'Wait' }, { name: 'Raw' }, { name: 'Encoding' }, { name: 'Stream' }],
-    description: 'Gets the content of the item at the specified location.',
-  },
-  {
-    id: 'Set-Content',
-    name: 'Set-Content',
-    category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Value' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Credential' }, { name: 'NoNewline' }, { name: 'Encoding' }, { name: 'Stream' }, { name: 'PassThru' }],
-    description: 'Writes new content or replaces the content in a file.',
-  },
   {
     id: 'Add-Content',
     name: 'Add-Content',
@@ -153,11 +139,11 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Deletes the content of an item, such as the text in a file, but does not delete the item.',
   },
   {
-    id: 'Get-ChildItem',
-    name: 'Get-ChildItem',
+    id: 'Clear-Item',
+    name: 'Clear-Item',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Depth' }, { name: 'Force' }, { name: 'Name' }, { name: 'Attributes' }, { name: 'Directory' }, { name: 'File' }, { name: 'Hidden' }, { name: 'ReadOnly' }, { name: 'System' }],
-    description: 'Gets the items and child items in one or more specified locations.',
+    parameters: [ { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' } ],
+    description: 'Removes the content from an item, but does not delete the item.',
   },
   {
     id: 'Copy-Item',
@@ -167,39 +153,18 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Copies an item from one location to another.',
   },
   {
-    id: 'Move-Item',
-    name: 'Move-Item',
+    id: 'Get-ChildItem',
+    name: 'Get-ChildItem',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Destination' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'PassThru' }, { name: 'Credential' }],
-    description: 'Moves an item from one location to another.',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Depth' }, { name: 'Force' }, { name: 'Name' }, { name: 'Attributes' }, { name: 'Directory' }, { name: 'File' }, { name: 'Hidden' }, { name: 'ReadOnly' }, { name: 'System' }],
+    description: 'Gets the items and child items in one or more specified locations.',
   },
   {
-    id: 'Remove-Item',
-    name: 'Remove-Item',
+    id: 'Get-Content',
+    name: 'Get-Content',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Force' }, { name: 'Credential' }, { name: 'Stream' }],
-    description: 'Deletes items.',
-  },
-  {
-    id: 'New-Item',
-    name: 'New-Item',
-    category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'Name' }, { name: 'ItemType' }, { name: 'Value' }, { name: 'Force' }, { name: 'Credential' }],
-    description: 'Creates a new item.',
-  },
-  {
-    id: 'Rename-Item',
-    name: 'Rename-Item',
-    category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'NewName' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Credential' }],
-    description: 'Renames an item in a PowerShell provider namespace.',
-  },
-  {
-    id: 'Test-Path',
-    name: 'Test-Path',
-    category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'PathType' }, { name: 'IsValid' }, { name: 'Credential' }, { name: 'OlderThan' }, { name: 'NewerThan' }],
-    description: 'Determines whether all elements of a path exist.',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'ReadCount' }, { name: 'TotalCount' }, { name: 'Tail' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Credential' }, { name: 'Delimiter' }, { name: 'Wait' }, { name: 'Raw' }, { name: 'Encoding' }, { name: 'Stream' }],
+    description: 'Gets the content of the item at the specified location.',
   },
   {
     id: 'Get-ItemProperty',
@@ -209,25 +174,11 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets the properties of a specified item.',
   },
   {
-    id: 'Set-ItemProperty',
-    name: 'Set-ItemProperty',
+    id: 'Get-Location',
+    name: 'Get-Location',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Name' }, { name: 'Value' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' }],
-    description: 'Creates or changes the value of a property of an item.',
-  },
-  {
-    id: 'Clear-Item',
-    name: 'Clear-Item',
-    category: 'File & Item Management',
-    parameters: [ { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' } ],
-    description: 'Removes the content from an item, but does not delete the item.',
-  },
-  {
-    id: 'Split-Path',
-    name: 'Split-Path',
-    category: 'File & Item Management',
-    parameters: [ { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Qualifier' }, { name: 'NoQualifier' }, { name: 'Parent' }, { name: 'Leaf' }, { name: 'Resolve' }, { name: 'IsAbsolute' }, { name: 'Credential' } ],
-    description: 'Returns the specified part of a path.',
+    parameters: [{ name: 'PSProvider' }, { name: 'PSDrive' }, { name: 'Stack' }, { name: 'StackName' }],
+    description: 'Gets information about the current working location or a location stack.'
   },
   {
     id: 'Join-Path',
@@ -237,18 +188,18 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Combines a path and a child path into a single path.'
   },
   {
-    id: 'Get-Location',
-    name: 'Get-Location',
+    id: 'Move-Item',
+    name: 'Move-Item',
     category: 'File & Item Management',
-    parameters: [{ name: 'PSProvider' }, { name: 'PSDrive' }, { name: 'Stack' }, { name: 'StackName' }],
-    description: 'Gets information about the current working location or a location stack.'
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Destination' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'PassThru' }, { name: 'Credential' }],
+    description: 'Moves an item from one location to another.',
   },
   {
-    id: 'Set-Location',
-    name: 'Set-Location',
+    id: 'New-Item',
+    name: 'New-Item',
     category: 'File & Item Management',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'PassThru' }, { name: 'StackName' }],
-    description: 'Sets the current working location to a specified location.'
+    parameters: [{ name: 'Path' }, { name: 'Name' }, { name: 'ItemType' }, { name: 'Value' }, { name: 'Force' }, { name: 'Credential' }],
+    description: 'Creates a new item.',
   },
   {
     id: 'Pop-Location',
@@ -264,21 +215,84 @@ export const mockCommands: BasePowerShellCommand[] = [
     parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'PassThru' }, { name: 'StackName' }],
     description: 'Adds the current location to the top of a location stack.'
   },
+  {
+    id: 'Remove-Item',
+    name: 'Remove-Item',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Recurse' }, { name: 'Force' }, { name: 'Credential' }, { name: 'Stream' }],
+    description: 'Deletes items.',
+  },
+  {
+    id: 'Rename-Item',
+    name: 'Rename-Item',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'NewName' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Credential' }],
+    description: 'Renames an item in a PowerShell provider namespace.',
+  },
+  {
+    id: 'Set-Content',
+    name: 'Set-Content',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Value' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Credential' }, { name: 'NoNewline' }, { name: 'Encoding' }, { name: 'Stream' }, { name: 'PassThru' }],
+    description: 'Writes new content or replaces the content in a file.',
+  },
+  {
+    id: 'Set-ItemProperty',
+    name: 'Set-ItemProperty',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Name' }, { name: 'Value' }, { name: 'InputObject' }, { name: 'PassThru' }, { name: 'Force' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Credential' }],
+    description: 'Creates or changes the value of a property of an item.',
+  },
+  {
+    id: 'Set-Location',
+    name: 'Set-Location',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'PassThru' }, { name: 'StackName' }],
+    description: 'Sets the current working location to a specified location.'
+  },
+  {
+    id: 'Split-Path',
+    name: 'Split-Path',
+    category: 'File & Item Management',
+    parameters: [ { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Qualifier' }, { name: 'NoQualifier' }, { name: 'Parent' }, { name: 'Leaf' }, { name: 'Resolve' }, { name: 'IsAbsolute' }, { name: 'Credential' } ],
+    description: 'Returns the specified part of a path.',
+  },
+  {
+    id: 'Test-Path',
+    name: 'Test-Path',
+    category: 'File & Item Management',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'PathType' }, { name: 'IsValid' }, { name: 'Credential' }, { name: 'OlderThan' }, { name: 'NewerThan' }],
+    description: 'Determines whether all elements of a path exist.',
+  },
 
   // PowerShell Core & Scripting
   {
-    id: 'Write-Host',
-    name: 'Write-Host',
+    id: 'Add-History',
+    name: 'Add-History',
     category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Object' }, { name: 'NoNewline' }, { name: 'Separator' }, { name: 'ForegroundColor' }, { name: 'BackgroundColor' }],
-    description: 'Writes customized output to a host.',
+    parameters: [{ name: 'InputObject' }, { name: 'Passthru' }],
+    description: 'Adds entries to the session history.'
   },
   {
-    id: 'Write-Output',
-    name: 'Write-Output',
+    id: 'Clear-History',
+    name: 'Clear-History',
     category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'InputObject' }, { name: 'NoEnumerate' }],
-    description: 'Sends the specified objects to the next command in the pipeline. If the command is the last command in the pipeline, the objects are displayed in the console.',
+    parameters: [{ name: 'Id' }, { name: 'Count' }, { name: 'CommandLine' }, { name: 'Newest' }],
+    description: 'Deletes entries from the command history.'
+  },
+  {
+    id: 'Clear-Variable',
+    name: 'Clear-Variable',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Name' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Scope' }],
+    description: 'Deletes the value of a variable, but does not delete the variable.'
+  },
+  {
+    id: 'Get-Alias',
+    name: 'Get-Alias',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Name' }, { name: 'Exclude' }, { name: 'Scope' }, { name: 'Definition' }],
+    description: 'Gets the aliases for the current session.'
   },
   {
     id: 'Get-Command',
@@ -286,6 +300,13 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'PowerShell Core & Scripting',
     parameters: [{ name: 'Name' }, { name: 'Verb' }, { name: 'Noun' }, { name: 'Module' }, { name: 'FullyQualifiedModule' }, { name: 'CommandType' }, { name: 'TotalCount' }, { name: 'Syntax' }, { name: 'ShowCommandInfo' }, { name: 'ArgumentList' }, { name: 'All' }, { name: 'ListImported' }, { name: 'ParameterName' }, { name: 'ParameterType' }],
     description: 'Gets all commands that are installed on the computer, including cmdlets, aliases, functions, filters, scripts, and applications.',
+  },
+  {
+    id: 'Get-Date',
+    name: 'Get-Date',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Date' }, { name: 'Year' }, { name: 'Month' }, { name: 'Day' }, { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }, { name: 'Millisecond' }, { name: 'DisplayHint' }, { name: 'UFormat' }, { name: 'Format' }],
+    description: 'Gets the current date and time.'
   },
   {
     id: 'Get-Help',
@@ -302,48 +323,6 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets a list of the commands entered during the current session.',
   },
   {
-    id: 'Start-Sleep',
-    name: 'Start-Sleep',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Seconds' }, { name: 'Milliseconds' }],
-    description: 'Suspends the activity in a script or session for the specified period of time.',
-  },
-  {
-    id: 'Invoke-Expression',
-    name: 'Invoke-Expression',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Command' }],
-    description: 'Runs commands or expressions on the local computer.',
-  },
-  {
-    id: 'Add-History',
-    name: 'Add-History',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'InputObject' }, { name: 'Passthru' }],
-    description: 'Adds entries to the session history.'
-  },
-  {
-    id: 'Clear-History',
-    name: 'Clear-History',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Id' }, { name: 'Count' }, { name: 'CommandLine' }, { name: 'Newest' }],
-    description: 'Deletes entries from the command history.'
-  },
-  {
-    id: 'Invoke-History',
-    name: 'Invoke-History',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Id' }],
-    description: 'Runs commands from the session history.'
-  },
-  {
-    id: 'Get-Date',
-    name: 'Get-Date',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Date' }, { name: 'Year' }, { name: 'Month' }, { name: 'Day' }, { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }, { name: 'Millisecond' }, { name: 'DisplayHint' }, { name: 'UFormat' }, { name: 'Format' }],
-    description: 'Gets the current date and time.'
-  },
-  {
     id: 'Get-Host',
     name: 'Get-Host',
     category: 'PowerShell Core & Scripting',
@@ -358,39 +337,18 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets the variables in the current console.'
   },
   {
-    id: 'New-Variable',
-    name: 'New-Variable',
+    id: 'Invoke-Expression',
+    name: 'Invoke-Expression',
     category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Description' }, { name: 'Option' }, { name: 'Visibility' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Scope' }],
-    description: 'Creates a new variable.'
+    parameters: [{ name: 'Command' }],
+    description: 'Runs commands or expressions on the local computer.',
   },
   {
-    id: 'Set-Variable',
-    name: 'Set-Variable',
+    id: 'Invoke-History',
+    name: 'Invoke-History',
     category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Description' }, { name: 'Option' }, { name: 'Force' }, { name: 'Visibility' }, { name: 'PassThru' }, { name: 'Scope' }],
-    description: 'Sets the value of a variable. Creates the variable if one with the same name does not exist.'
-  },
-  {
-    id: 'Clear-Variable',
-    name: 'Clear-Variable',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Name' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Scope' }],
-    description: 'Deletes the value of a variable, but does not delete the variable.'
-  },
-  {
-    id: 'Remove-Variable',
-    name: 'Remove-Variable',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Name' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Scope' }],
-    description: 'Deletes a variable and its value.'
-  },
-  {
-    id: 'Get-Alias',
-    name: 'Get-Alias',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'Name' }, { name: 'Exclude' }, { name: 'Scope' }, { name: 'Definition' }],
-    description: 'Gets the aliases for the current session.'
+    parameters: [{ name: 'Id' }],
+    description: 'Runs commands from the session history.'
   },
   {
     id: 'New-Alias',
@@ -400,11 +358,46 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Creates a new alias.'
   },
   {
+    id: 'New-Variable',
+    name: 'New-Variable',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Description' }, { name: 'Option' }, { name: 'Visibility' }, { name: 'Force' }, { name: 'PassThru' }, { name: 'Scope' }],
+    description: 'Creates a new variable.'
+  },
+  {
+    id: 'Out-Null',
+    name: 'Out-Null',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'InputObject' }],
+    description: 'Deletes output instead of sending it to the console.'
+  },
+  {
+    id: 'Remove-Variable',
+    name: 'Remove-Variable',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Name' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Force' }, { name: 'Scope' }],
+    description: 'Deletes a variable and its value.'
+  },
+  {
     id: 'Set-Alias',
     name: 'Set-Alias',
     category: 'PowerShell Core & Scripting',
     parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Description' }, { name: 'Option' }, { name: 'PassThru' }, { name: 'Scope' }, { name: 'Force' }],
     description: 'Creates or changes an alias.'
+  },
+  {
+    id: 'Set-Variable',
+    name: 'Set-Variable',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Name' }, { name: 'Value' }, { name: 'Include' }, { name: 'Exclude' }, { name: 'Description' }, { name: 'Option' }, { name: 'Force' }, { name: 'Visibility' }, { name: 'PassThru' }, { name: 'Scope' }],
+    description: 'Sets the value of a variable. Creates the variable if one with the same name does not exist.'
+  },
+  {
+    id: 'Start-Sleep',
+    name: 'Start-Sleep',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Seconds' }, { name: 'Milliseconds' }],
+    description: 'Suspends the activity in a script or session for the specified period of time.',
   },
   {
     id: 'Write-Debug',
@@ -421,6 +414,20 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Writes an object to the error stream.'
   },
   {
+    id: 'Write-Host',
+    name: 'Write-Host',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'Object' }, { name: 'NoNewline' }, { name: 'Separator' }, { name: 'ForegroundColor' }, { name: 'BackgroundColor' }],
+    description: 'Writes customized output to a host.',
+  },
+  {
+    id: 'Write-Output',
+    name: 'Write-Output',
+    category: 'PowerShell Core & Scripting',
+    parameters: [{ name: 'InputObject' }, { name: 'NoEnumerate' }],
+    description: 'Sends the specified objects to the next command in the pipeline. If the command is the last command in the pipeline, the objects are displayed in the console.',
+  },
+  {
     id: 'Write-Verbose',
     name: 'Write-Verbose',
     category: 'PowerShell Core & Scripting',
@@ -434,64 +441,15 @@ export const mockCommands: BasePowerShellCommand[] = [
     parameters: [{ name: 'Message' }],
     description: 'Writes a warning message.'
   },
-  {
-    id: 'Out-Null',
-    name: 'Out-Null',
-    category: 'PowerShell Core & Scripting',
-    parameters: [{ name: 'InputObject' }],
-    description: 'Deletes output instead of sending it to the console.'
-  },
 
 
   // Data Handling & Formatting
-  {
-    id: 'ConvertTo-Json',
-    name: 'ConvertTo-Json',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'InputObject' }, { name: 'Depth' }, { name: 'Compress' }],
-    description: 'Converts an object to a JSON-formatted string.',
-  },
   {
     id: 'ConvertFrom-Json',
     name: 'ConvertFrom-Json',
     category: 'Data Handling & Formatting',
     parameters: [{ name: 'InputObject' }],
     description: 'Converts a JSON-formatted string to a custom object.',
-  },
-  {
-    id: 'Export-Csv',
-    name: 'Export-Csv',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'InputObject' }, { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Force' }, { name: 'NoClobber' }, { name: 'Encoding' }, { name: 'Append' }, { name: 'Delimiter' }, { name: 'UseCulture' }, { name: 'NoTypeInformation' }],
-    description: 'Converts objects into a series of comma-separated value (CSV) strings and saves them in a CSV file.',
-  },
-  {
-    id: 'Import-Csv',
-    name: 'Import-Csv',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Delimiter' }, { name: 'UseCulture' }, { name: 'Header' }, { name: 'Encoding' }],
-    description: 'Creates table-like custom objects from the items in a CSV file.',
-  },
-  {
-    id: 'Select-Object',
-    name: 'Select-Object',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'ExcludeProperty' }, { name: 'ExpandProperty' }, { name: 'Unique' }, { name: 'Last' }, { name: 'First' }, { name: 'Skip' }, { name: 'SkipLast' }, { name: 'Wait' }, { name: 'Index' }],
-    description: 'Selects objects or object properties.',
-  },
-  {
-    id: 'Sort-Object',
-    name: 'Sort-Object',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Descending' }, { name: 'Unique' }, { name: 'Culture' }, { name: 'CaseSensitive' }],
-    description: 'Sorts objects by property values.',
-  },
-  {
-    id: 'Measure-Object',
-    name: 'Measure-Object',
-    category: 'Data Handling & Formatting',
-    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Sum' }, { name: 'Average' }, { name: 'Maximum' }, { name: 'Minimum' }, { name: 'Line' }, { name: 'Word' }, { name: 'Character' }, { name: 'IgnoreWhiteSpace' }],
-    description: 'Calculates the numeric properties of objects, and the characters, words, and lines in string objects, such as files of text.',
   },
   {
     id: 'ConvertTo-Html',
@@ -501,11 +459,25 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Converts Microsoft .NET Framework objects into HTML that can be displayed in a Web browser.',
   },
   {
+    id: 'ConvertTo-Json',
+    name: 'ConvertTo-Json',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'InputObject' }, { name: 'Depth' }, { name: 'Compress' }],
+    description: 'Converts an object to a JSON-formatted string.',
+  },
+  {
     id: 'ConvertTo-Xml',
     name: 'ConvertTo-Xml',
     category: 'Data Handling & Formatting',
     parameters: [ { name: 'InputObject' }, { name: 'Depth' }, { name: 'NoTypeInformation' }, { name: 'As' } ],
     description: 'Creates an XML-based representation of an object or objects.',
+  },
+  {
+    id: 'Export-Csv',
+    name: 'Export-Csv',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'InputObject' }, { name: 'Path' }, { name: 'LiteralPath' }, { name: 'Force' }, { name: 'NoClobber' }, { name: 'Encoding' }, { name: 'Append' }, { name: 'Delimiter' }, { name: 'UseCulture' }, { name: 'NoTypeInformation' }],
+    description: 'Converts objects into a series of comma-separated value (CSV) strings and saves them in a CSV file.',
   },
   {
     id: 'Format-List',
@@ -535,15 +507,36 @@ export const mockCommands: BasePowerShellCommand[] = [
     parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Culture' }, { name: 'CaseSensitive' }, { name: 'NoElement' }, { name: 'AsHashTable' }, { name: 'AsString' }],
     description: 'Groups objects that contain the same value for specified properties.'
   },
+  {
+    id: 'Import-Csv',
+    name: 'Import-Csv',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'Delimiter' }, { name: 'UseCulture' }, { name: 'Header' }, { name: 'Encoding' }],
+    description: 'Creates table-like custom objects from the items in a CSV file.',
+  },
+  {
+    id: 'Measure-Object',
+    name: 'Measure-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Sum' }, { name: 'Average' }, { name: 'Maximum' }, { name: 'Minimum' }, { name: 'Line' }, { name: 'Word' }, { name: 'Character' }, { name: 'IgnoreWhiteSpace' }],
+    description: 'Calculates the numeric properties of objects, and the characters, words, and lines in string objects, such as files of text.',
+  },
+  {
+    id: 'Select-Object',
+    name: 'Select-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'ExcludeProperty' }, { name: 'ExpandProperty' }, { name: 'Unique' }, { name: 'Last' }, { name: 'First' }, { name: 'Skip' }, { name: 'SkipLast' }, { name: 'Wait' }, { name: 'Index' }],
+    description: 'Selects objects or object properties.',
+  },
+  {
+    id: 'Sort-Object',
+    name: 'Sort-Object',
+    category: 'Data Handling & Formatting',
+    parameters: [{ name: 'InputObject' }, { name: 'Property' }, { name: 'Descending' }, { name: 'Unique' }, { name: 'Culture' }, { name: 'CaseSensitive' }],
+    description: 'Sorts objects by property values.',
+  },
 
   // Networking
-  {
-    id: 'Invoke-WebRequest',
-    name: 'Invoke-WebRequest',
-    category: 'Networking',
-    parameters: [{ name: 'Uri' }, { name: 'WebSession' }, { name: 'SessionVariable' }, { name: 'Credential' }, { name: 'UseDefaultCredentials' }, { name: 'CertificateThumbprint' }, { name: 'Certificate' }, { name: 'UserAgent' }, { name: 'DisableKeepAlive' }, { name: 'TimeoutSec' }, { name: 'Headers' }, { name: 'MaximumRedirection' }, { name: 'Method' }, { name: 'Proxy' }, { name: 'ProxyCredential' }, { name: 'ProxyUseDefaultCredentials' }, { name: 'Body' }, { name: 'ContentType' }, { name: 'TransferEncoding' }, { name: 'InFile' }, { name: 'OutFile' }, { name: 'PassThru' }, { name: 'UseBasicParsing' }],
-    description: 'Gets content from a web page on the Internet.',
-  },
   {
     id: 'Invoke-RestMethod',
     name: 'Invoke-RestMethod',
@@ -552,18 +545,11 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Sends an HTTP or HTTPS request to a RESTful web service.',
   },
   {
-    id: 'Test-Connection',
-    name: 'Test-Connection',
+    id: 'Invoke-WebRequest',
+    name: 'Invoke-WebRequest',
     category: 'Networking',
-    parameters: [{ name: 'ComputerName' }, { name: 'Count' }, { name: 'Delay' }, { name: 'BufferSize' }, { name: 'TimeToLive' }, { name: 'Quiet' }, { name: 'Source' }, { name: 'Credential' }, { name: 'DcomAuthentication' }, { name: 'WsmanAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
-    description: 'Sends ICMP echo request packets ("pings") to one or more remote computers.',
-  },
-  {
-    id: 'Resolve-DnsName',
-    name: 'Resolve-DnsName',
-    category: 'Networking',
-    parameters: [{ name: 'Name' }, { name: 'Type' }, { name: 'Server' }, { name: 'DnsOnly' }, { name: 'CacheOnly' }, { name: 'NoHostsFile' }],
-    description: 'Performs a DNS query for the specified name.',
+    parameters: [{ name: 'Uri' }, { name: 'WebSession' }, { name: 'SessionVariable' }, { name: 'Credential' }, { name: 'UseDefaultCredentials' }, { name: 'CertificateThumbprint' }, { name: 'Certificate' }, { name: 'UserAgent' }, { name: 'DisableKeepAlive' }, { name: 'TimeoutSec' }, { name: 'Headers' }, { name: 'MaximumRedirection' }, { name: 'Method' }, { name: 'Proxy' }, { name: 'ProxyCredential' }, { name: 'ProxyUseDefaultCredentials' }, { name: 'Body' }, { name: 'ContentType' }, { name: 'TransferEncoding' }, { name: 'InFile' }, { name: 'OutFile' }, { name: 'PassThru' }, { name: 'UseBasicParsing' }],
+    description: 'Gets content from a web page on the Internet.',
   },
   {
     id: 'New-WebServiceProxy',
@@ -573,48 +559,34 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Creates a Web service proxy object that lets you use and manage the Web service in PowerShell.'
   },
   {
+    id: 'Resolve-DnsName',
+    name: 'Resolve-DnsName',
+    category: 'Networking',
+    parameters: [{ name: 'Name' }, { name: 'Type' }, { name: 'Server' }, { name: 'DnsOnly' }, { name: 'CacheOnly' }, { name: 'NoHostsFile' }],
+    description: 'Performs a DNS query for the specified name.',
+  },
+  {
     id: 'Send-MailMessage',
     name: 'Send-MailMessage',
     category: 'Networking',
     parameters: [ { name: 'From' }, { name: 'To' }, { name: 'Subject' }, { name: 'Body' }, { name: 'SmtpServer' }, { name: 'Cc' }, { name: 'Bcc' }, { name: 'Attachments' }, { name: 'Priority' }, { name: 'DeliveryNotificationOption' }, { name: 'Encoding' }, { name: 'BodyAsHtml' }, { name: 'Credential' }, { name: 'UseSsl' }, { name: 'Port' } ],
     description: 'Sends an e-mail message.',
   },
+  {
+    id: 'Test-Connection',
+    name: 'Test-Connection',
+    category: 'Networking',
+    parameters: [{ name: 'ComputerName' }, { name: 'Count' }, { name: 'Delay' }, { name: 'BufferSize' }, { name: 'TimeToLive' }, { name: 'Quiet' }, { name: 'Source' }, { name: 'Credential' }, { name: 'DcomAuthentication' }, { name: 'WsmanAuthentication' }, { name: 'Protocol' }, { name: 'Impersonation' }, { name: 'ThrottleLimit' }, { name: 'AsJob' }],
+    description: 'Sends ICMP echo request packets ("pings") to one or more remote computers.',
+  },
 
   // Security
   {
-    id: 'Get-Acl',
-    name: 'Get-Acl',
+    id: 'ConvertFrom-SecureString',
+    name: 'ConvertFrom-SecureString',
     category: 'Security',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'InputObject' }, { name: 'Audit' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }],
-    description: 'Gets the security descriptor for a resource, such as a file or registry key.',
-  },
-  {
-    id: 'Set-Acl',
-    name: 'Set-Acl',
-    category: 'Security',
-    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'InputObject' }, { name: 'AclObject' }, { name: 'ClearCentralAccessPolicy' }, { name: 'Passthru' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }],
-    description: 'Changes the security descriptor of a specified item, such as a file or a registry key.',
-  },
-  {
-    id: 'Get-ExecutionPolicy',
-    name: 'Get-ExecutionPolicy',
-    category: 'Security',
-    parameters: [{ name: 'Scope' }, { name: 'List' }],
-    description: 'Gets the execution policies for the current session.',
-  },
-  {
-    id: 'Set-ExecutionPolicy',
-    name: 'Set-ExecutionPolicy',
-    category: 'Security',
-    parameters: [{ name: 'ExecutionPolicy' }, { name: 'Scope' }, { name: 'Force' }],
-    description: 'Changes the user preference for the PowerShell execution policy.',
-  },
-  {
-    id: 'Get-Credential',
-    name: 'Get-Credential',
-    category: 'Security',
-    parameters: [{ name: 'UserName' }, { name: 'Message' }],
-    description: 'Gets a credential object based on a user name and password.'
+    parameters: [{ name: 'SecureString' }, { name: 'AsPlainText' }, { name: 'Key' }],
+    description: 'Converts a secure string to an encrypted standard string.'
   },
   {
     id: 'ConvertTo-SecureString',
@@ -624,11 +596,39 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Converts encrypted standard strings to secure strings.'
   },
   {
-    id: 'ConvertFrom-SecureString',
-    name: 'ConvertFrom-SecureString',
+    id: 'Get-Acl',
+    name: 'Get-Acl',
     category: 'Security',
-    parameters: [{ name: 'SecureString' }, { name: 'AsPlainText' }, { name: 'Key' }],
-    description: 'Converts a secure string to an encrypted standard string.'
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'InputObject' }, { name: 'Audit' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }],
+    description: 'Gets the security descriptor for a resource, such as a file or registry key.',
+  },
+  {
+    id: 'Get-Credential',
+    name: 'Get-Credential',
+    category: 'Security',
+    parameters: [{ name: 'UserName' }, { name: 'Message' }],
+    description: 'Gets a credential object based on a user name and password.'
+  },
+  {
+    id: 'Get-ExecutionPolicy',
+    name: 'Get-ExecutionPolicy',
+    category: 'Security',
+    parameters: [{ name: 'Scope' }, { name: 'List' }],
+    description: 'Gets the execution policies for the current session.',
+  },
+  {
+    id: 'Set-Acl',
+    name: 'Set-Acl',
+    category: 'Security',
+    parameters: [{ name: 'Path' }, { name: 'LiteralPath' }, { name: 'InputObject' }, { name: 'AclObject' }, { name: 'ClearCentralAccessPolicy' }, { name: 'Passthru' }, { name: 'Filter' }, { name: 'Include' }, { name: 'Exclude' }],
+    description: 'Changes the security descriptor of a specified item, such as a file or a registry key.',
+  },
+  {
+    id: 'Set-ExecutionPolicy',
+    name: 'Set-ExecutionPolicy',
+    category: 'Security',
+    parameters: [{ name: 'ExecutionPolicy' }, { name: 'Scope' }, { name: 'Force' }],
+    description: 'Changes the user preference for the PowerShell execution policy.',
   },
   {
     id: 'Unblock-File',
@@ -640,18 +640,18 @@ export const mockCommands: BasePowerShellCommand[] = [
 
   // Application Management
   {
-    id: 'Get-AppxPackage',
-    name: 'Get-AppxPackage',
-    category: 'Application Management',
-    parameters: [{ name: 'Name' }, { name: 'Publisher' }, { name: 'AllUsers' }, { name: 'User' }],
-    description: 'Gets a list of the app packages that are installed in a user profile.',
-  },
-  {
     id: 'Add-AppxPackage',
     name: 'Add-AppxPackage',
     category: 'Application Management',
     parameters: [{ name: 'Path' }, { name: 'DependencyPath' }, { name: 'Register' }, { name: 'DisableDevelopmentMode' }, { name: 'ForceApplicationShutdown' }, { name: 'ForceTargetApplicationShutdown' }, { name: 'ForceUpdateFromAnyVersion' }, { name: 'InstallAllResources' }, { name: 'PackageFamilyName' }, { name: 'RequiredContentGroupOnly' }, { name: 'RetainFilesOnFailure' }, { name: 'StageInPlace' }, { name: 'StubPackageOption' }, { name: 'UpdateIfFound' }, { name: 'Volume' }],
     description: 'Adds a signed app package to a user account.',
+  },
+  {
+    id: 'Get-AppxPackage',
+    name: 'Get-AppxPackage',
+    category: 'Application Management',
+    parameters: [{ name: 'Name' }, { name: 'Publisher' }, { name: 'AllUsers' }, { name: 'User' }],
+    description: 'Gets a list of the app packages that are installed in a user profile.',
   },
   {
     id: 'Remove-AppxPackage',
@@ -670,20 +670,6 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Gets the virtual machines from one or more Hyper-V hosts.',
   },
   {
-    id: 'Start-VM',
-    name: 'Start-VM',
-    category: 'Hyper-V',
-    parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'PassThru' }],
-    description: 'Starts a virtual machine.',
-  },
-  {
-    id: 'Stop-VM',
-    name: 'Stop-VM',
-    category: 'Hyper-V',
-    parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'Force' }, { name: 'TurnOff' }, { name: 'Save' }, { name: 'PassThru' }],
-    description: 'Shuts down, turns off, or saves a virtual machine.',
-  },
-  {
     id: 'New-VM',
     name: 'New-VM',
     category: 'Hyper-V',
@@ -696,5 +682,19 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'Hyper-V',
     parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'Force' }, { name: 'PassThru' }],
     description: 'Deletes a virtual machine.'
+  },
+  {
+    id: 'Start-VM',
+    name: 'Start-VM',
+    category: 'Hyper-V',
+    parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'PassThru' }],
+    description: 'Starts a virtual machine.',
+  },
+  {
+    id: 'Stop-VM',
+    name: 'Stop-VM',
+    category: 'Hyper-V',
+    parameters: [{ name: 'Name' }, { name: 'VM' }, { name: 'ComputerName' }, { name: 'Force' }, { name: 'TurnOff' }, { name: 'Save' }, { name: 'PassThru' }],
+    description: 'Shuts down, turns off, or saves a virtual machine.',
   },
 ];
