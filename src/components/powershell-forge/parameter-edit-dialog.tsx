@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ScriptPowerShellCommand } from '@/types/powershell';
+import { FolderOpen } from 'lucide-react';
 
 interface ParameterEditDialogProps {
   isOpen: boolean;
@@ -22,6 +24,13 @@ interface ParameterEditDialogProps {
   onSave: (updatedCommand: ScriptPowerShellCommand) => void;
 }
 
+// Heuristic list of parameter names that typically expect a file path.
+const pathParamNames = [
+  'Path', 'FilePath', 'LiteralPath', 'PSPath', 
+  'SourcePath', 'DestinationPath', 'TargetPath', 
+  'LogPath', 'OutFile', 'AppendPath', 'FullName'
+];
+
 export function ParameterEditDialog({
   isOpen,
   onOpenChange,
@@ -29,6 +38,8 @@ export function ParameterEditDialog({
   onSave,
 }: ParameterEditDialogProps) {
   const [currentParameterValues, setCurrentParameterValues] = useState<{ [key: string]: string }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [paramNameForFileBrowse, setParamNameForFileBrowse] = useState<string | null>(null);
 
   useEffect(() => {
     if (command) {
@@ -45,38 +56,78 @@ export function ParameterEditDialog({
     onOpenChange(false);
   };
 
+  const handleBrowseClick = (paramName: string) => {
+    setParamNameForFileBrowse(paramName);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && paramNameForFileBrowse) {
+      handleValueChange(paramNameForFileBrowse, file.name);
+    }
+    // Reset file input to allow selecting the same file again
+    if (event.target) {
+      event.target.value = '';
+    }
+    setParamNameForFileBrowse(null);
+  };
+
   if (!command) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl"> {/* Increased width */}
         <DialogHeader>
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
-            Modify the parameter values for this command instance.
+            Modify the parameter values for this command instance. For path parameters, you can browse for a file.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6">
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-y-6 gap-x-4 py-4">
             {command.parameters.length === 0 && (
                 <p className="text-sm text-muted-foreground">This command has no parameters.</p>
             )}
-            {command.parameters.map((param) => (
-              <div key={param.name} className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor={param.name} className="text-right col-span-1 truncate">
-                  -{param.name}
-                </Label>
-                <Input
-                  id={param.name}
-                  value={currentParameterValues[param.name] || ''}
-                  onChange={(e) => handleValueChange(param.name, e.target.value)}
-                  className="col-span-3"
-                  placeholder={`Value for ${param.name}`}
-                />
-              </div>
-            ))}
+            {command.parameters.map((param) => {
+              const isPathParam = pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
+              return (
+                <div key={param.name} className="grid grid-cols-5 items-center gap-x-4">
+                  <Label htmlFor={param.name} className="text-right col-span-1 truncate">
+                    -{param.name}
+                  </Label>
+                  <div className={`flex items-center gap-2 ${isPathParam ? 'col-span-3' : 'col-span-4'}`}>
+                    <Input
+                      id={param.name}
+                      value={currentParameterValues[param.name] || ''}
+                      onChange={(e) => handleValueChange(param.name, e.target.value)}
+                      className="flex-grow"
+                      placeholder={`Value for ${param.name}`}
+                    />
+                  </div>
+                  {isPathParam && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleBrowseClick(param.name)}
+                      className="col-span-1"
+                      aria-label={`Browse for ${param.name}`}
+                    >
+                      <FolderOpen className="mr-2 h-4 w-4" /> Browse
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </ScrollArea>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelected}
+          className="hidden"
+          aria-hidden="true"
+        />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
