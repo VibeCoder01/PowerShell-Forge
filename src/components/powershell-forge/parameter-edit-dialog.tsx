@@ -68,8 +68,6 @@ export function ParameterEditDialog({
     const file = event.target.files?.[0];
     if (file && paramNameForFileBrowse) {
       const selectedFileName = file.name;
-      
-      // Populate ONLY the parameter that triggered the browse
       handleValueChange(paramNameForFileBrowse, selectedFileName);
     }
     // Reset file input to allow selecting the same file again
@@ -83,7 +81,7 @@ export function ParameterEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl"> {/* Increased width */}
         <DialogHeader>
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
@@ -106,7 +104,7 @@ export function ParameterEditDialog({
                   <Label htmlFor={param.name} className="text-right col-span-1 whitespace-nowrap">
                     {param.name}
                   </Label>
-                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'}`}>
+                  <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'} py-1`}> {/* Added py-1 for vertical padding */}
                     <Input
                       id={param.name}
                       value={currentParameterValues[param.name] || ''}
