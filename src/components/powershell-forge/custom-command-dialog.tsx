@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 interface CustomCommandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[] }) => void;
+  onSave: (commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[]; category?: string }) => void;
 }
 
 interface ParameterField {
@@ -31,9 +31,24 @@ interface ParameterField {
   name: string;
 }
 
+// Suggest some common categories or allow free text
+const commonCategories = [
+  "System Management",
+  "File & Item Management",
+  "Networking",
+  "Data Handling & Formatting",
+  "Security",
+  "Application Management",
+  "PowerShell Core & Scripting",
+  "Hyper-V",
+  "Custom" 
+];
+
+
 export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomCommandDialogProps) {
   const [commandName, setCommandName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Custom');
   const [parameters, setParameters] = useState<ParameterField[]>([]);
   const { toast } = useToast();
 
@@ -42,6 +57,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
       // Reset form when dialog opens
       setCommandName('');
       setDescription('');
+      setCategory('Custom');
       setParameters([{ id: generateUniqueId(), name: '' }]); // Start with one empty parameter field
     }
   }, [open]);
@@ -67,6 +83,15 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
       });
       return;
     }
+    if (!category.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Category is required.',
+      });
+      return;
+    }
+
 
     const finalParameters = parameters
       .map(p => ({ name: p.name.trim() }))
@@ -88,6 +113,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
     onSave({
       name: commandName.trim(),
       description: description.trim() || undefined,
+      category: category.trim(),
       parameters: finalParameters,
     });
     onOpenChange(false); // Close dialog after save
@@ -102,7 +128,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
             Create Custom PowerShell Command
           </DialogTitle>
           <DialogDescription>
-            Define your own PowerShell command and its parameters.
+            Define your own PowerShell command, its category, and its parameters.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6 -mr-6">
@@ -115,6 +141,19 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
                 onChange={(e) => setCommandName(e.target.value)}
                 placeholder="e.g., Start-MyApplication"
               />
+            </div>
+             <div className="grid gap-1.5">
+              <Label htmlFor="custom-command-category">Category <span className="text-destructive">*</span></Label>
+              <Input
+                id="custom-command-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g., Custom Utilities"
+                list="common-categories"
+              />
+              <datalist id="common-categories">
+                {commonCategories.map(cat => <option key={cat} value={cat} />)}
+              </datalist>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="custom-command-description">Description</Label>

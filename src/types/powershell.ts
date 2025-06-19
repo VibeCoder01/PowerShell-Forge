@@ -8,13 +8,14 @@ export interface PowerShellCommandParameter {
 export interface BasePowerShellCommand {
   id: string; // Usually the command name, or unique ID for custom commands
   name: string;
+  category: string; // Category for grouping in the UI
   parameters: PowerShellCommandParameter[];
   description?: string;
   isCustom?: boolean; // Flag to identify custom commands
 }
 
 // Represents an instance of a PowerShell command within a script, with editable values
-export interface ScriptPowerShellCommand extends Omit<BasePowerShellCommand, 'id' | 'description' | 'isCustom'> {
+export interface ScriptPowerShellCommand extends Omit<BasePowerShellCommand, 'id' | 'description' | 'isCustom' | 'category'> {
   instanceId: string; // Unique ID for this specific instance in the script
   type: 'command';
   // Base command 'id' can be stored if needed to re-fetch original parameters/description
