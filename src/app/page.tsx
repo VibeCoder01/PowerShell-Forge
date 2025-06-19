@@ -1,11 +1,12 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CommandBrowser } from '@/components/powershell-forge/command-browser';
 import { ScriptEditorColumn } from '@/components/powershell-forge/script-editor-column';
 import { ActionsPanel } from '@/components/powershell-forge/actions-panel';
-import { mockCommands } from '@/data/mock-commands';
-import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand } from '@/types/powershell';
+import { mockCommands as initialMockCommands } from '@/data/mock-commands';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
 import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateUniqueId } from '@/lib/utils';
@@ -42,7 +43,9 @@ function parseTextToRawScriptLines(text: string): RawScriptLine[] {
 
 
 export default function PowerShellForgePage() {
-  const [commands, setCommands] = useState<BasePowerShellCommand[]>([]);
+  const [mockCommands, setMockCommands] = useState<BasePowerShellCommand[]>([]);
+  const [customCommands, setCustomCommands] = useState<BasePowerShellCommand[]>([]);
+  
   const [addScriptElements, setAddScriptElements] = useState<ScriptElement[]>([]);
   const [launchScriptElements, setLaunchScriptElements] = useState<ScriptElement[]>([]);
   const [removeScriptElements, setRemoveScriptElements] = useState<ScriptElement[]>([]);
@@ -51,7 +54,21 @@ export default function PowerShellForgePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setCommands(mockCommands);
+    setMockCommands(initialMockCommands);
+    
+    // Load custom commands from localStorage
+    const savedCustomCommands = localStorage.getItem('powershellForge_customCommands');
+    if (savedCustomCommands) {
+      try {
+        const parsed = JSON.parse(savedCustomCommands);
+        if (Array.isArray(parsed) && parsed.every(cmd => cmd.id && cmd.name && Array.isArray(cmd.parameters))) {
+          setCustomCommands(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse custom commands from localStorage", e);
+        setCustomCommands([]);
+      }
+    }
   }, []);
   
   useEffect(() => {
@@ -60,13 +77,12 @@ export default function PowerShellForgePage() {
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
-          // Basic validation: check if it's an array and elements have instanceId and type
           if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type)) {
             setter(parsed);
-          } else if (typeof savedData === 'string') { // Legacy: treat as plain text
+          } else if (typeof savedData === 'string') { 
             setter(parseTextToRawScriptLines(savedData));
           }
-        } catch (e) { // If JSON parsing fails, treat as plain text
+        } catch (e) { 
           setter(parseTextToRawScriptLines(savedData));
         }
       }
@@ -92,6 +108,9 @@ export default function PowerShellForgePage() {
   useEffect(() => {
     localStorage.setItem('powershellForge_aiSuggestionsEnabled', String(isAiSuggestionsEnabled));
   }, [isAiSuggestionsEnabled]);
+  useEffect(() => {
+    localStorage.setItem('powershellForge_customCommands', JSON.stringify(customCommands));
+  }, [customCommands]);
 
 
   const scriptElementSetters: Record<ScriptType, React.Dispatch<React.SetStateAction<ScriptElement[]>>> = {
@@ -158,6 +177,18 @@ export default function PowerShellForgePage() {
     setIsAiSuggestionsEnabled(prev => !prev);
   }, []);
 
+  const handleAddNewCustomCommand = useCallback((commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[] }) => {
+    const newCustomCommand: BasePowerShellCommand = {
+      ...commandData,
+      id: `custom-${generateUniqueId()}`, // Ensure a unique ID for custom commands
+      isCustom: true,
+    };
+    setCustomCommands(prev => [...prev, newCustomCommand]);
+    toast({ title: 'Custom Command Added', description: `Command "${newCustomCommand.name}" has been added.` });
+  }, [toast]);
+
+  const allAvailableCommands = useMemo(() => [...mockCommands, ...customCommands], [mockCommands, customCommands]);
+
 
   return (
     <div className="flex flex-col h-screen p-4 bg-background gap-4">
@@ -172,7 +203,11 @@ export default function PowerShellForgePage() {
       </header>
       <main className="flex-grow grid grid-cols-1 md:grid-cols-10 gap-4 overflow-hidden">
         <div className="md:col-span-2 h-full overflow-y-auto">
-          <CommandBrowser commands={commands} />
+          <CommandBrowser 
+            mockCommands={mockCommands} 
+            customCommands={customCommands}
+            onSaveCustomCommand={handleAddNewCustomCommand} 
+          />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ScriptEditorColumn
@@ -182,7 +217,7 @@ export default function PowerShellForgePage() {
             scriptElements={addScriptElements}
             setScriptElements={setAddScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            baseCommands={commands}
+            baseCommands={allAvailableCommands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
@@ -193,7 +228,7 @@ export default function PowerShellForgePage() {
             scriptElements={launchScriptElements}
             setScriptElements={setLaunchScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            baseCommands={commands}
+            baseCommands={allAvailableCommands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
@@ -204,15 +239,15 @@ export default function PowerShellForgePage() {
             scriptElements={removeScriptElements}
             setScriptElements={setRemoveScriptElements}
             isAiSuggestionsGloballyEnabled={isAiSuggestionsEnabled}
-            baseCommands={commands}
+            baseCommands={allAvailableCommands}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ActionsPanel
             onSaveScript={handleSaveScript}
-            onLoadScript={handleLoadScript} // This now expects plain text content
+            onLoadScript={handleLoadScript} 
             onSaveAllScripts={handleSaveAllScripts}
-            onLoadAllScripts={handleLoadAllScripts} // This expects ScriptElement[] structure
+            onLoadAllScripts={handleLoadAllScripts} 
             isAiSuggestionsEnabled={isAiSuggestionsEnabled}
             onAiSuggestionToggle={handleAiSuggestionToggle}
           />
@@ -221,3 +256,4 @@ export default function PowerShellForgePage() {
     </div>
   );
 }
+

@@ -1,18 +1,28 @@
+
 'use client';
 
-import type { PowerShellCommand } from '@/types/powershell';
+import type { BasePowerShellCommand } from '@/types/powershell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { GripVertical } from 'lucide-react';
 
 interface CommandItemProps {
-  command: PowerShellCommand;
+  command: BasePowerShellCommand;
 }
 
 export function CommandItem({ command }: CommandItemProps) {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(command));
+    // When dragging, we only need the base command structure.
+    // The ScriptEditorColumn will transform this into a ScriptPowerShellCommand.
+    const commandToDrag: BasePowerShellCommand = {
+      id: command.id,
+      name: command.name,
+      parameters: command.parameters,
+      description: command.description,
+      isCustom: command.isCustom, // Preserve this flag
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(commandToDrag));
     e.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -30,6 +40,7 @@ export function CommandItem({ command }: CommandItemProps) {
               <div className="flex items-center gap-2">
                 <GripVertical className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 <span className="font-semibold text-primary">{command.name}</span>
+                {command.isCustom && <Badge variant="outline" className="text-xs">Custom</Badge>}
               </div>
             </div>
           </AccordionTrigger>
