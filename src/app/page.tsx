@@ -176,7 +176,7 @@ export default function PowerShellForgePage() {
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ScriptEditorColumn
-            title="Add Script"
+            title="Add"
             icon={PlusSquare}
             scriptType="add"
             scriptElements={addScriptElements}
@@ -187,7 +187,7 @@ export default function PowerShellForgePage() {
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ScriptEditorColumn
-            title="Launch Script"
+            title="Launch"
             icon={PlaySquare}
             scriptType="launch"
             scriptElements={launchScriptElements}
@@ -198,7 +198,7 @@ export default function PowerShellForgePage() {
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ScriptEditorColumn
-            title="Remove Script"
+            title="Remove"
             icon={MinusSquare}
             scriptType="remove"
             scriptElements={removeScriptElements}

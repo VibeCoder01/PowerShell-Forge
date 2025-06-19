@@ -49,7 +49,7 @@ export function ParameterEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
@@ -63,7 +63,7 @@ export function ParameterEditDialog({
             )}
             {command.parameters.map((param) => (
               <div key={param.name} className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor={param.name} className="text-right col-span-1">
+                <Label htmlFor={param.name} className="text-right col-span-1 truncate">
                   -{param.name}
                 </Label>
                 <Input
