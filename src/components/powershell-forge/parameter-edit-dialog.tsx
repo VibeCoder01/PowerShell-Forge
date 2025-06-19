@@ -26,8 +26,8 @@ interface ParameterEditDialogProps {
 
 // Heuristic list of parameter names that typically expect a file path.
 const pathParamNames = [
-  'Path', 'FilePath', 'LiteralPath', 'PSPath', 
-  'SourcePath', 'DestinationPath', 'TargetPath', 
+  'Path', 'FilePath', 'LiteralPath', 'PSPath',
+  'SourcePath', 'DestinationPath', 'TargetPath',
   'LogPath', 'OutFile', 'AppendPath', 'FullName'
 ];
 
@@ -69,20 +69,8 @@ export function ParameterEditDialog({
     if (file && paramNameForFileBrowse) {
       const selectedFileName = file.name;
       
-      // Populate the parameter that triggered the browse with just the filename
+      // Populate ONLY the parameter that triggered the browse
       handleValueChange(paramNameForFileBrowse, selectedFileName);
-
-      // If the browsed parameter was a "path" type, also try to populate a "Name" or "FileName" parameter
-      const isBrowsedParamAPathType = pathParamNames.some(name => name.toLowerCase() === paramNameForFileBrowse.toLowerCase());
-      
-      if (isBrowsedParamAPathType) {
-        const nameParamToPopulate = command.parameters.find(p => 
-          fileNameParamNames.some(name => name.toLowerCase() === p.name.toLowerCase())
-        );
-        if (nameParamToPopulate && nameParamToPopulate.name !== paramNameForFileBrowse) {
-          handleValueChange(nameParamToPopulate.name, selectedFileName);
-        }
-      }
     }
     // Reset file input to allow selecting the same file again
     if (event.target) {
@@ -95,12 +83,12 @@ export function ParameterEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl"> {/* Increased width from 2xl to 3xl */}
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
-            Modify the parameter values for this command instance. For path parameters, you can browse for a file.
-            The browser will only provide the filename; you may need to adjust the path manually.
+            Modify the parameter values for this command instance. For path or filename parameters, you can browse for a file.
+            The browser will only provide the filename; you may need to adjust the path manually for path parameters.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6">
@@ -109,14 +97,14 @@ export function ParameterEditDialog({
                 <p className="text-sm text-muted-foreground">This command has no parameters.</p>
             )}
             {command.parameters.map((param) => {
-              const isPotentiallyPathOrFileName = 
+              const isPotentiallyPathOrFileName =
                 pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
                 fileNameParamNames.some(name => name.toLowerCase() === param.name.toLowerCase());
-              
+
               return (
                 <div key={param.name} className="grid grid-cols-5 items-center gap-x-4">
                   <Label htmlFor={param.name} className="text-right col-span-1 whitespace-nowrap">
-                    {param.name} {/* Removed leading hyphen */}
+                    {param.name}
                   </Label>
                   <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'col-span-3' : 'col-span-4'}`}>
                     <Input
@@ -128,9 +116,9 @@ export function ParameterEditDialog({
                     />
                   </div>
                   {isPotentiallyPathOrFileName && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleBrowseClick(param.name)}
                       className="col-span-1"
                       aria-label={`Browse for ${param.name}`}
