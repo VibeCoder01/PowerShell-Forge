@@ -31,6 +31,9 @@ const pathParamNames = [
   'LogPath', 'OutFile', 'AppendPath', 'FullName'
 ];
 
+// Parameter names that typically expect just a filename.
+const fileNameParamNames = ['Name', 'FileName'];
+
 export function ParameterEditDialog({
   isOpen,
   onOpenChange,
@@ -64,7 +67,19 @@ export function ParameterEditDialog({
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && paramNameForFileBrowse) {
-      handleValueChange(paramNameForFileBrowse, file.name);
+      const selectedFileName = file.name;
+      
+      // Update the parameter that triggered the browse
+      handleValueChange(paramNameForFileBrowse, selectedFileName);
+
+      // Check if there's a corresponding Name/FileName parameter to also populate
+      const nameParam = command.parameters.find(p => 
+        fileNameParamNames.some(name => name.toLowerCase() === p.name.toLowerCase())
+      );
+
+      if (nameParam) {
+        handleValueChange(nameParam.name, selectedFileName);
+      }
     }
     // Reset file input to allow selecting the same file again
     if (event.target) {
@@ -82,6 +97,7 @@ export function ParameterEditDialog({
           <DialogTitle>Edit Parameters for: {command.name}</DialogTitle>
           <DialogDescription>
             Modify the parameter values for this command instance. For path parameters, you can browse for a file.
+            The browser will only provide the filename; you may need to adjust the path manually.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6">
