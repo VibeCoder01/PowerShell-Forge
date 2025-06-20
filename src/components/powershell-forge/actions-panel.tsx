@@ -97,7 +97,7 @@ export function ActionsPanel({
             </div>
           ))}
           <Separator className="my-1" />
-           <div className="mb-1 p-1 border rounded-md bg-muted/50">
+           <div className="mb-1 p-1 border rounded-md bg-muted">
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
