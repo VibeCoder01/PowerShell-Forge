@@ -15,8 +15,8 @@ interface ActionsPanelProps {
   onLoadAllScripts: (scripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => void;
 }
 
-export function ActionsPanel({ 
-  onSaveScript, 
+export function ActionsPanel({
+  onSaveScript,
   onLoadScript,
   onSaveAllScripts,
   onLoadAllScripts,
@@ -40,7 +40,7 @@ export function ActionsPanel({
             if (
               parsedScripts &&
               typeof parsedScripts === 'object' &&
-              Array.isArray(parsedScripts.add) && 
+              Array.isArray(parsedScripts.add) &&
               Array.isArray(parsedScripts.launch) &&
               Array.isArray(parsedScripts.remove)
             ) {
@@ -56,7 +56,7 @@ export function ActionsPanel({
         }
       };
       reader.readAsText(file);
-      if (event.target) event.target.value = ''; 
+      if (event.target) event.target.value = '';
     }
   };
 
@@ -66,13 +66,13 @@ export function ActionsPanel({
 
   return (
     <Card className="h-full flex flex-col shadow-xl">
-      <CardHeader className="py-3 pl-4 pr-2 border-b">
+      <CardHeader className="py-3 pl-4 pr-1 border-b"> {/* Changed pr-2 to pr-1 */}
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="pl-2 pt-2 pb-2 pr-1 flex-grow space-y-2">
+      <CardContent className="pl-2 pt-2 pb-2 pr-0 flex-grow space-y-2"> {/* Changed pr-1 to pr-0 */}
         <div>
           <h3 className="text-xs font-semibold mb-1 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
