@@ -7,7 +7,7 @@ import { ScriptEditorColumn } from '@/components/powershell-forge/script-editor-
 import { ActionsPanel } from '@/components/powershell-forge/actions-panel';
 import { ResizableHandle } from '@/components/powershell-forge/resizable-handle';
 import { mockCommands as initialMockCommands } from '@/data/mock-commands';
-import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter, LoopScriptElement } from '@/types/powershell';
 import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateUniqueId } from '@/lib/utils';
@@ -17,34 +17,70 @@ const MIN_COLUMN_WIDTH_PERCENT = 5; // Minimum 5% width for any column
 // Adjusted default widths: Command Browser (28%), Editors (20% each), Actions (12%)
 const DEFAULT_COLUMN_WIDTHS_PERCENT = [28, 20, 20, 20, 12]; 
 
-function stringifyScriptElements(elements: ScriptElement[]): string {
+function stringifyScriptElements(elements: ScriptElement[], indentLevel = 0): string {
+  const indent = '  '.repeat(indentLevel);
   return elements.map(el => {
     if (el.type === 'raw') {
-      return el.content;
+      return `${indent}${el.content}`;
     }
-    const commandElement = el as ScriptPowerShellCommand;
+    if (el.type === 'command') {
+      const commandElement = el as ScriptPowerShellCommand;
 
-    if (commandElement.baseCommandId === 'internal-add-comment') {
-      const commentText = commandElement.parameterValues['CommentText'] || '';
-      const formattedComment = commentText.split('\n').map(line => `# ${line}`).join('\n');
-      const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false';
-      return (prependBlankLine ? '\n' : '') + formattedComment;
+      if (commandElement.baseCommandId === 'internal-add-comment') {
+        const commentText = commandElement.parameterValues['CommentText'] || '';
+        const formattedComment = commentText.split('\n').map(line => `${indent}# ${line}`).join('\n');
+        const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false';
+        return (prependBlankLine && indentLevel === 0 ? '\n' : '') + formattedComment; // Only add top-level blank line if not nested
+      }
+
+      if (commandElement.baseCommandId === 'internal-user-prompt') {
+        return ''; // User Prompts are not rendered into the PowerShell script
+      }
+
+      const paramsString = commandElement.parameters
+        .map(param => {
+          const value = commandElement.parameterValues[param.name];
+          // Only include parameters that have a non-empty value
+          // or are boolean-like common parameters that should always be present if set (e.g. -Verbose if its value is '$true')
+          // For simplicity, we'll just check for non-empty string value.
+          return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
+        })
+        .filter(Boolean)
+        .join(' ');
+      return `${indent}${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
+
+    } else if (el.type === 'loop') {
+      const loopEl = el as LoopScriptElement;
+      let loopStart = '';
+      const collection = loopEl.parameterValues['InputObject'] || '$null'; // Default to $null if not specified
+
+      switch (loopEl.baseCommandId) {
+        case 'internal-foreach-loop':
+          const itemVar = loopEl.parameterValues['ItemVariable'] || '_'; // Default to $_
+          loopStart = `${indent}foreach ($${itemVar.replace(/^\$/, '')} in ${collection}) {`;
+          break;
+        case 'internal-for-loop':
+          const initializer = loopEl.parameterValues['Initializer'] || '';
+          const condition = loopEl.parameterValues['Condition'] || '$false'; // Loop won't run if condition is empty
+          const iterator = loopEl.parameterValues['Iterator'] || '';
+          loopStart = `${indent}for (${initializer}; ${condition}; ${iterator}) {`;
+          break;
+        case 'internal-while-loop':
+          const whileCondition = loopEl.parameterValues['Condition'] || '$false'; // Loop won't run if condition is empty
+          loopStart = `${indent}while (${whileCondition}) {`;
+          break;
+        default:
+          // Should not happen if types are correct
+          loopStart = `${indent}# Unsupported loop type: ${loopEl.name}`;
+      }
+      const childrenString = stringifyScriptElements(loopEl.children, indentLevel + 1);
+      const loopEnd = `${indent}}`;
+      return `${loopStart}\n${childrenString}\n${loopEnd}`;
     }
-
-    if (commandElement.baseCommandId === 'internal-user-prompt') {
-      return ''; // User Prompts are not rendered into the PowerShell script
-    }
-
-    const paramsString = commandElement.parameters
-      .map(param => {
-        const value = commandElement.parameterValues[param.name];
-        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
-      })
-      .filter(Boolean)
-      .join(' ');
-    return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
+    return ''; // Should not happen
   }).join('\n');
 }
+
 
 function parseTextToRawScriptLines(text: string): ScriptElement[] {
   if (!text || typeof text !== 'string') return [];
@@ -67,6 +103,45 @@ function parseTextToRawScriptLines(text: string): ScriptElement[] {
       type: 'raw',
       content: line,
     } as RawScriptLine;
+  });
+}
+
+function processLoadedElementsRecursive(elements: any[] | undefined): ScriptElement[] {
+  if (!elements || !Array.isArray(elements)) return [];
+  return elements.map((el: any) => {
+    const newEl = { ...el };
+    if (newEl.type === 'command' && newEl.baseCommandId === 'internal-add-comment') {
+      if (newEl.parameterValues['_prependBlankLine'] === undefined) {
+        newEl.parameterValues = { ...newEl.parameterValues, '_prependBlankLine': 'true' };
+      }
+    }
+    if (newEl.type === 'command' && newEl.baseCommandId === 'internal-user-prompt') {
+      if (newEl.parameterValues['PromptText'] === undefined) {
+         newEl.parameterValues = { ...newEl.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' };
+      }
+    }
+    if (newEl.type === 'loop') {
+      // Ensure children array exists and is processed
+      newEl.children = processLoadedElementsRecursive(newEl.children || []);
+      // Initialize default parameter values if missing for loops from older saves
+      const loopBaseCommand = initialMockCommands.find(cmd => cmd.id === newEl.baseCommandId && cmd.isLoop);
+      if (loopBaseCommand) {
+        newEl.parameters = loopBaseCommand.parameters; // Ensure parameters definition is up-to-date
+        const defaultValues: { [key: string]: string } = {};
+        if (newEl.baseCommandId === 'internal-foreach-loop') {
+          defaultValues['ItemVariable'] = newEl.parameterValues?.['ItemVariable'] || 'item';
+          defaultValues['InputObject'] = newEl.parameterValues?.['InputObject'] || '';
+        } else if (newEl.baseCommandId === 'internal-for-loop') {
+          defaultValues['Initializer'] = newEl.parameterValues?.['Initializer'] || '';
+          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '';
+          defaultValues['Iterator'] = newEl.parameterValues?.['Iterator'] || '';
+        } else if (newEl.baseCommandId === 'internal-while-loop') {
+          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '';
+        }
+        newEl.parameterValues = { ...defaultValues, ...newEl.parameterValues };
+      }
+    }
+    return newEl as ScriptElement;
   });
 }
 
@@ -106,12 +181,10 @@ export default function PowerShellForgePage() {
       try {
         const parsedWidths = JSON.parse(savedWidths) as number[];
         if (Array.isArray(parsedWidths) && parsedWidths.length === NUM_COLUMNS && parsedWidths.every(w => typeof w === 'number')) {
-          // Basic validation: ensure sum is close to 100
           const sum = parsedWidths.reduce((acc, w) => acc + w, 0);
-          if (Math.abs(sum - 100) < 1) { // Allow for small floating point inaccuracies
+          if (Math.abs(sum - 100) < 1) {
             setColumnWidths(parsedWidths);
           } else {
-            console.warn("Loaded column widths do not sum to 100, resetting to default.");
             setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); 
             localStorage.removeItem('powershellForge_columnWidths'); 
           }
@@ -132,25 +205,14 @@ export default function PowerShellForgePage() {
       const savedData = localStorage.getItem(key);
       if (savedData) {
         try {
-          const parsed = JSON.parse(savedData) as ScriptElement[];
-          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type &&
-            (el.type === 'raw' || (el.type === 'command' && (el as ScriptPowerShellCommand).baseCommandId))
-          )) {
-            const processedParsed = parsed.map(el => {
-              if (el.type === 'command' && el.baseCommandId === 'internal-add-comment') {
-                const cmdEl = el as ScriptPowerShellCommand;
-                if (cmdEl.parameterValues['_prependBlankLine'] === undefined) {
-                  return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, '_prependBlankLine': 'true' }};
-                }
-              }
-              return el;
-            });
-            setter(processedParsed);
-          } else if (typeof savedData === 'string' && !savedData.startsWith('[')) {
+          const parsed = JSON.parse(savedData) as any[]; // Load as any[] first for processing
+          if (Array.isArray(parsed)) {
+            setter(processLoadedElementsRecursive(parsed));
+          } else if (typeof savedData === 'string' && !savedData.startsWith('[')) { // Old format, just text
             setter(parseTextToRawScriptLines(savedData));
           }
         } catch (e) {
-          if (typeof savedData === 'string') {
+          if (typeof savedData === 'string') { // Fallback for corrupted JSON or old string format
             setter(parseTextToRawScriptLines(savedData));
           }
         }
@@ -243,29 +305,10 @@ export default function PowerShellForgePage() {
     toast({ title: 'All Scripts Saved', description: 'All scripts saved to powershell_forge_scripts.json' });
   };
 
-  const handleLoadAllScripts = (loadedScripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => {
-     const processLoadedElements = (elements: ScriptElement[] | undefined) => {
-      if (!elements) return [];
-      return elements.map(el => {
-        if (el.type === 'command' && el.baseCommandId === 'internal-add-comment') {
-          const cmdEl = el as ScriptPowerShellCommand;
-          if (cmdEl.parameterValues['_prependBlankLine'] === undefined) {
-            return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, '_prependBlankLine': 'true' }};
-          }
-        }
-        // Initialize PromptText for older internal-user-prompt commands if missing
-        if (el.type === 'command' && el.baseCommandId === 'internal-user-prompt') {
-          const cmdEl = el as ScriptPowerShellCommand;
-          if (cmdEl.parameterValues['PromptText'] === undefined) {
-             return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' }};
-          }
-        }
-        return el;
-      });
-    };
-    setAddScriptElements(processLoadedElements(loadedScripts.add));
-    setLaunchScriptElements(processLoadedElements(loadedScripts.launch));
-    setRemoveScriptElements(processLoadedElements(loadedScripts.remove));
+  const handleLoadAllScripts = (loadedScripts: { add: any[]; launch: any[]; remove: any[] }) => {
+    setAddScriptElements(processLoadedElementsRecursive(loadedScripts.add));
+    setLaunchScriptElements(processLoadedElementsRecursive(loadedScripts.launch));
+    setRemoveScriptElements(processLoadedElementsRecursive(loadedScripts.remove));
     toast({ title: 'All Scripts Loaded', description: 'All scripts have been loaded successfully.' });
   };
 
@@ -274,6 +317,7 @@ export default function PowerShellForgePage() {
       ...commandData,
       id: `custom-${generateUniqueId()}`,
       isCustom: true,
+      category: commandData.category || 'Custom', // Ensure category
     };
     setCustomCommands(prev => [...prev, newCustomCommand]);
     toast({ title: 'Custom Command Added', description: `Command "${newCustomCommand.name}" has been added.` });
@@ -297,25 +341,14 @@ export default function PowerShellForgePage() {
       const leftColumnIndex = handleIndex;
       const rightColumnIndex = handleIndex + 1;
 
-      // Do not attempt to resize the last column (ActionsPanel) if it's set to 'auto' width
-      // The resize handle before it will adjust the column to its left.
-      if (rightColumnIndex === newWidths.length -1 && newWidths[rightColumnIndex] === -1) { // -1 can signify 'auto' for internal logic
-        // Apply all delta to the left column if the right one is auto/fixed
+      if (rightColumnIndex === newWidths.length -1 && newWidths[rightColumnIndex] === -1) { 
          let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
          if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
             deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
             newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
          }
          newWidths[leftColumnIndex] = newLeftWidth;
-         // The "auto" column will adjust naturally. We just need to ensure other percentages are okay.
-         const resizableCols = newWidths.slice(0, -1);
-         const currentSumResizable = resizableCols.reduce((sum, w) => sum + w, 0);
-         // This logic might need to be more sophisticated if other columns are also auto or fixed.
-         // For now, assuming only the last one can be special.
-         // If sum is off, it might be due to minWidth constraints, try to re-distribute or cap.
-
       } else {
-        // Original logic for two percentage-based columns
         let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
         if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
           deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
@@ -338,12 +371,10 @@ export default function PowerShellForgePage() {
         newWidths[rightColumnIndex] = newRightWidth;
       }
 
-
-      // Normalize widths to sum to 100% for percentage-based columns
-      const percentageColumns = newWidths.filter((w, i) => i < newWidths.length -1 || (i === newWidths.length -1 && w !== -1) ); // Exclude 'auto' from sum if marked as -1
+      const percentageColumns = newWidths.filter((w, i) => i < newWidths.length -1 || (i === newWidths.length -1 && w !== -1) );
       const currentSum = percentageColumns.reduce((sum, w) => sum + w, 0);
 
-      if (Math.abs(currentSum - 100) > 0.01 && percentageColumns.length === newWidths.length) { // Only normalize if all are percentage
+      if (Math.abs(currentSum - 100) > 0.01 && percentageColumns.length === newWidths.length) {
         const scaleFactor = 100 / currentSum;
         for (let i = 0; i < newWidths.length; i++) {
           newWidths[i] *= scaleFactor;

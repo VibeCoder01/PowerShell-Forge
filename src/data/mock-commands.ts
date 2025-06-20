@@ -50,6 +50,41 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Adds an in-editor visual prompt or to-do item. Not rendered in .ps1 scripts.',
   },
 
+  // Looping Constructs
+  {
+    id: 'internal-foreach-loop',
+    name: 'ForEach Loop',
+    category: 'Looping Constructs',
+    parameters: [
+      { name: 'InputObject' }, // e.g., $myArray, (Get-Service)
+      { name: 'ItemVariable' },  // e.g., item (becomes $item), defaults to $_
+    ],
+    description: 'Iterates over a collection of items (ForEach-Object).',
+    isLoop: true,
+  },
+  {
+    id: 'internal-for-loop',
+    name: 'For Loop',
+    category: 'Looping Constructs',
+    parameters: [
+      { name: 'Initializer' },   // e.g., $i = 0
+      { name: 'Condition' },     // e.g., $i -lt 10
+      { name: 'Iterator' },      // e.g., $i++
+    ],
+    description: 'Repeats commands based on an initializer, condition, and iterator.',
+    isLoop: true,
+  },
+  {
+    id: 'internal-while-loop',
+    name: 'While Loop',
+    category: 'Looping Constructs',
+    parameters: [
+      { name: 'Condition' },     // e.g., $true, $count -gt 0
+    ],
+    description: 'Repeats commands as long as a condition is true.',
+    isLoop: true,
+  },
+
   // System Management
   {
     id: 'Add-Computer',
