@@ -15,8 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ScriptPowerShellCommand, PowerShellCommandParameter, LoopScriptElement } from '@/types/powershell';
-import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown, MessageSquareText, AlertTriangle, Repeat, IterationCcw, ListTree } from 'lucide-react';
+import type { ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
+import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown, MessageSquareText, AlertTriangle, Repeat, IterationCcw, ListTree, CornerRightDown, CornerLeftUp } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateUniqueId } from '@/lib/utils';
@@ -44,8 +44,8 @@ const COMMON_PARAMETERS_LIST: PowerShellCommandParameter[] = [
 interface ParameterEditDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  command: ScriptPowerShellCommand | LoopScriptElement; // Can be either a command or a loop
-  onSave: (updatedCommand: ScriptPowerShellCommand | LoopScriptElement) => void;
+  command: ScriptPowerShellCommand; 
+  onSave: (updatedCommand: ScriptPowerShellCommand) => void;
 }
 
 interface AdHocParam {
@@ -68,9 +68,10 @@ export function ParameterEditDialog({
   const [paramNameForFileBrowse, setParamNameForFileBrowse] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const isCommentCommand = command && command.type ==='command' && command.baseCommandId === 'internal-add-comment';
-  const isUserPromptCommand = command && command.type ==='command' && command.baseCommandId === 'internal-user-prompt';
-  const isLoopCommand = command && command.type === 'loop';
+  const isCommentCommand = command && command.baseCommandId === 'internal-add-comment';
+  const isUserPromptCommand = command && command.baseCommandId === 'internal-user-prompt';
+  const isStartLoopCommand = command && command.baseCommandId.startsWith('internal-start-');
+  const isEndLoopCommand = command && command.baseCommandId.startsWith('internal-end-');
 
 
   useEffect(() => {
@@ -82,27 +83,25 @@ export function ParameterEditDialog({
       if (isUserPromptCommand && initialValues['PromptText'] === undefined) {
         initialValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
       }
-      if (isLoopCommand) {
-        const loopCmd = command as LoopScriptElement;
-        if (loopCmd.baseCommandId === 'internal-foreach-loop') {
-            initialValues['ItemVariable'] = initialValues['ItemVariable'] || 'item'; // Default to 'item'
+      if (isStartLoopCommand) {
+        if (command.baseCommandId === 'internal-start-foreach-loop') {
+            initialValues['ItemVariable'] = initialValues['ItemVariable'] || 'item';
             initialValues['InputObject'] = initialValues['InputObject'] || '$collection';
-        } else if (loopCmd.baseCommandId === 'internal-for-loop') {
+        } else if (command.baseCommandId === 'internal-start-for-loop') {
             initialValues['Initializer'] = initialValues['Initializer'] || '$i = 0';
             initialValues['Condition'] = initialValues['Condition'] || '$i -lt 10';
             initialValues['Iterator'] = initialValues['Iterator'] || '$i++';
-        } else if (loopCmd.baseCommandId === 'internal-while-loop') {
+        } else if (command.baseCommandId === 'internal-start-while-loop') {
             initialValues['Condition'] = initialValues['Condition'] || '$true';
         }
       }
       setCurrentParameterValues(initialValues);
       
-      if (!isCommentCommand && !isUserPromptCommand && !isLoopCommand) {
-        const regularCmd = command as ScriptPowerShellCommand;
-        const definedParamNames = regularCmd.parameters.map(p => p.name);
+      if (!isCommentCommand && !isUserPromptCommand && !isStartLoopCommand && !isEndLoopCommand) {
+        const definedParamNames = command.parameters.map(p => p.name);
         const commonParamNames = COMMON_PARAMETERS_LIST.map(p => p.name);
 
-        const existingAdHoc = Object.keys(regularCmd.parameterValues)
+        const existingAdHoc = Object.keys(command.parameterValues)
           .filter(key => 
             !definedParamNames.includes(key) && 
             !commonParamNames.includes(key) &&
@@ -116,7 +115,7 @@ export function ParameterEditDialog({
         setAdHocParams([]); 
       }
     }
-  }, [command, isCommentCommand, isUserPromptCommand, isLoopCommand]);
+  }, [command, isCommentCommand, isUserPromptCommand, isStartLoopCommand, isEndLoopCommand]);
 
   const handleValueChange = (paramName: string, value: string) => {
     setCurrentParameterValues(prev => ({ ...prev, [paramName]: value }));
@@ -129,6 +128,11 @@ export function ParameterEditDialog({
   };
 
   const handleSubmit = () => {
+    // For End-Loop commands, there are no parameters to save.
+    if (isEndLoopCommand) {
+        onOpenChange(false);
+        return;
+    }
     onSave({ ...command, parameterValues: currentParameterValues });
     onOpenChange(false);
     setNewAdHocName('');
@@ -182,41 +186,44 @@ export function ParameterEditDialog({
 
 
   if (!command) return null;
+  // If it's an End-Loop command, no parameters are editable, effectively making the dialog a no-op or just for confirmation.
+  // We could also prevent opening it, but this keeps the click handler consistent.
+  if (isEndLoopCommand && isOpen) {
+    // Auto-close or show a minimal "No parameters to edit" message if desired.
+    // For now, it will just show an empty dialog which the user can cancel.
+    // Or better, close it immediately.
+    // useEffect(() => { if (isEndLoopCommand && isOpen) onOpenChange(false); }, [isEndLoopCommand, isOpen, onOpenChange]);
+  }
 
-  const specificParameters = command.type === 'loop' 
-    ? command.parameters // For loops, all defined parameters are specific to the loop construct
-    : (command as ScriptPowerShellCommand).parameters.filter(
+
+  const specificParameters = command.parameters.filter(
         param => !COMMON_PARAMETERS_LIST.some(commonParam => commonParam.name.toLowerCase() === param.name.toLowerCase())
       );
 
   const getDialogTitle = () => {
     if (isCommentCommand) return 'Edit Comment';
     if (isUserPromptCommand) return 'Edit User Prompt';
-    if (isLoopCommand) return `Edit Parameters for: ${command.name}`;
+    if (isStartLoopCommand || isEndLoopCommand) return `Editing: ${command.name}`;
     return `Edit Parameters for: ${command.name}`;
   };
 
   const getDialogIcon = () => {
     if (isCommentCommand) return <MessageSquareText className="h-5 w-5 text-primary" />;
     if (isUserPromptCommand) return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-    if (isLoopCommand) {
-        const loopCmd = command as LoopScriptElement;
-        if (loopCmd.baseCommandId === 'internal-foreach-loop') return <Repeat className="h-5 w-5 text-blue-500" />;
-        if (loopCmd.baseCommandId === 'internal-for-loop') return <IterationCcw className="h-5 w-5 text-blue-500" />;
-        if (loopCmd.baseCommandId === 'internal-while-loop') return <ListTree className="h-5 w-5 text-blue-500" />;
-    }
+    if (command.baseCommandId === 'internal-start-foreach-loop') return <Repeat className="h-5 w-5 text-blue-500" />;
+    if (command.baseCommandId === 'internal-start-for-loop') return <IterationCcw className="h-5 w-5 text-blue-500" />;
+    if (command.baseCommandId === 'internal-start-while-loop') return <ListTree className="h-5 w-5 text-blue-500" />;
+    if (command.baseCommandId.startsWith('internal-end-')) return <CornerLeftUp className="h-5 w-5 text-gray-500" />;
     return <Settings2 className="h-5 w-5 text-primary" />;
   };
   
   const getDialogDescription = () => {
     if (isCommentCommand) return 'Edit the text content of the comment. Each new line in the text box will be a new comment line prefixed with #.';
     if (isUserPromptCommand) return 'Edit the text for this user prompt. This prompt is for your reference and will not be included in the generated PowerShell script.';
-    if (isLoopCommand) {
-        const loopCmd = command as LoopScriptElement;
-        if (loopCmd.baseCommandId === 'internal-foreach-loop') return 'Define the collection to iterate over and the variable for each item.';
-        if (loopCmd.baseCommandId === 'internal-for-loop') return 'Define the initializer, condition, and iterator for the For loop.';
-        if (loopCmd.baseCommandId === 'internal-while-loop') return 'Define the condition that must be true for the While loop to continue.';
-    }
+    if (command.baseCommandId === 'internal-start-foreach-loop') return 'Define the collection to iterate over and the variable for each item.';
+    if (command.baseCommandId === 'internal-start-for-loop') return 'Define the initializer, condition, and iterator for the For loop.';
+    if (command.baseCommandId === 'internal-start-while-loop') return 'Define the condition that must be true for the While loop to continue.';
+    if (isEndLoopCommand) return 'This command marks the end of a loop. It has no configurable parameters.';
     return 'Modify specific, common, or add custom parameters for this command instance. For path parameters, use Browse to get the filename, then edit the path manually.';
   }
 
@@ -275,9 +282,9 @@ export function ParameterEditDialog({
               </div>
             )}
             
-            {isLoopCommand && (
+            {isStartLoopCommand && (
                 <div className="space-y-4">
-                    {(command as LoopScriptElement).parameters.map((param) => (
+                    {command.parameters.map((param) => (
                         <div key={param.name} className="grid grid-cols-1 md:grid-cols-5 items-start gap-x-4 gap-y-1">
                             <Label htmlFor={`loop-${param.name}`} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1 pt-2 text-xs">
                                 {param.name}
@@ -296,8 +303,12 @@ export function ParameterEditDialog({
                 </div>
             )}
 
+            {isEndLoopCommand && (
+                <p className="text-sm text-muted-foreground pl-1">This loop-ending command has no parameters to configure.</p>
+            )}
 
-            {!isCommentCommand && !isUserPromptCommand && !isLoopCommand && specificParameters.length > 0 && (
+
+            {!isCommentCommand && !isUserPromptCommand && !isStartLoopCommand && !isEndLoopCommand && specificParameters.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-foreground">Specific Parameters</h3>
                 {specificParameters.map((param) => {
@@ -335,12 +346,11 @@ export function ParameterEditDialog({
                 })}
               </div>
             )}
-            {!isCommentCommand && !isUserPromptCommand && !isLoopCommand && specificParameters.length === 0 && !adHocParams.length && (
+            {!isCommentCommand && !isUserPromptCommand && !isStartLoopCommand && !isEndLoopCommand && specificParameters.length === 0 && !adHocParams.length && (
                  <p className="text-xs text-muted-foreground pl-1">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
             )}
 
-            {/* Common Parameters and Ad-hoc Parameters are not applicable to Loop constructs in this simplified dialog */}
-            {!isCommentCommand && !isUserPromptCommand && !isLoopCommand && (
+            {!isCommentCommand && !isUserPromptCommand && !isStartLoopCommand && !isEndLoopCommand && (
               <Accordion type="single" collapsible className="w-full pt-2">
                 <AccordionItem value="common-parameters">
                   <AccordionTrigger className="text-sm font-semibold hover:no-underline pl-1">
@@ -436,7 +446,8 @@ export function ParameterEditDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} className="text-xs">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="text-xs">Save Changes</Button>
+          {!isEndLoopCommand && <Button onClick={handleSubmit} className="text-xs">Save Changes</Button>}
+          {isEndLoopCommand && <Button onClick={handleSubmit} className="text-xs">Close</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

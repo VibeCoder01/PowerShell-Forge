@@ -1,38 +1,44 @@
 
 'use client';
 
-import type { ScriptPowerShellCommand, LoopScriptElement } from '@/types/powershell';
+import type { ScriptPowerShellCommand } from '@/types/powershell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { MessageSquareText, AlertTriangle, Repeat, IterationCcw, ListTree } from 'lucide-react'; // Added loop icons
+import { MessageSquareText, AlertTriangle, Repeat, IterationCcw, ListTree, CornerRightDown, CornerLeftUp, Settings } from 'lucide-react';
 
 interface ScriptCommandChipProps {
-  command: ScriptPowerShellCommand | LoopScriptElement;
+  command: ScriptPowerShellCommand;
   onClick: () => void;
-  hasUnsetParameters?: boolean; // Optional for loops, as they might not have "unset" in the same way
-  isLoopContainer?: boolean; // True if this chip represents the loop itself
+  hasUnsetParameters?: boolean;
 }
 
-export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoopContainer = false }: ScriptCommandChipProps) {
-  if (command.type === 'command' && command.baseCommandId === 'internal-add-comment') {
+export function ScriptCommandChip({ command, onClick, hasUnsetParameters }: ScriptCommandChipProps) {
+  let icon = <Settings className="h-4 w-4 text-primary shrink-0" />;
+  let chipStyle = "";
+  let titleStyle = hasUnsetParameters ? "text-destructive" : "text-primary";
+  let specificChipText = command.name;
+
+  if (command.baseCommandId === 'internal-add-comment') {
     const commentText = command.parameterValues['CommentText'] || '';
     const displayComment = commentText.length > 60 ? commentText.substring(0, 57) + '...' : commentText;
-    
+    icon = <MessageSquareText className="h-4 w-4 text-muted-foreground shrink-0" />;
+    chipStyle = "border-muted-foreground/30 hover:border-muted-foreground/70 bg-card/50";
+    if (hasUnsetParameters && (!commentText || commentText === "Your comment here")) {
+      chipStyle = "border-amber-500 hover:border-amber-600";
+    }
     return (
       <Button
         variant="outline"
         className={cn(
           "flex-grow h-auto py-1.5 px-2.5 text-left justify-start items-center shadow-sm hover:shadow-md w-full",
-          "border-muted-foreground/30 hover:border-muted-foreground/70 bg-card/50",
-           // Highlight if comment is empty or default placeholder
-          (hasUnsetParameters && (!commentText || commentText === "Your comment here")) ? "border-amber-500 hover:border-amber-600" : ""
+          chipStyle
         )}
         onClick={onClick}
         aria-label={`Edit comment: ${commentText}`}
       >
         <div className="flex items-center gap-1.5 w-full">
-          <MessageSquareText className="h-4 w-4 text-muted-foreground shrink-0" />
+          {icon}
           <span className={cn(
             "font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words",
             (!commentText || commentText === "Your comment here") ? "italic" : ""
@@ -42,25 +48,28 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
         </div>
       </Button>
     );
-  } else if (command.type === 'command' && command.baseCommandId === 'internal-user-prompt') {
+  } else if (command.baseCommandId === 'internal-user-prompt') {
     const promptText = command.parameterValues['PromptText'] || '';
     const defaultPromptText = "ACTION NEEDED: [Your prompt text here]";
     const displayPrompt = promptText.length > 60 ? promptText.substring(0, 57) + '...' : promptText;
     const isEmptyOrPlaceholder = !promptText || promptText === defaultPromptText;
-
-    return (
+    icon = <AlertTriangle className="h-4 w-4 shrink-0" />;
+    chipStyle = "bg-yellow-400 hover:bg-yellow-500 text-yellow-950 border-yellow-500 hover:border-yellow-600";
+    if (hasUnsetParameters && isEmptyOrPlaceholder) {
+        chipStyle += " ring-2 ring-offset-1 ring-red-500";
+    }
+     return (
       <Button
         variant="outline"
         className={cn(
           "flex-grow h-auto py-1.5 px-2.5 text-left justify-start items-center shadow-sm hover:shadow-md w-full",
-          "bg-yellow-400 hover:bg-yellow-500 text-yellow-950 border-yellow-500 hover:border-yellow-600",
-          (hasUnsetParameters && isEmptyOrPlaceholder) && "ring-2 ring-offset-1 ring-red-500"
+          chipStyle
         )}
         onClick={onClick}
         aria-label={`Edit user prompt: ${promptText}`}
       >
         <div className="flex items-center gap-1.5 w-full">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {icon}
           <span className={cn(
             "font-mono text-xs whitespace-pre-wrap break-words",
             isEmptyOrPlaceholder ? "italic" : ""
@@ -70,82 +79,45 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
         </div>
       </Button>
     );
-  } else if (isLoopContainer && command.type === 'loop') {
-    const loopElement = command as LoopScriptElement;
-    let Icon = Repeat; // Default for ForEach
-    if (loopElement.baseCommandId === 'internal-for-loop') Icon = IterationCcw;
-    if (loopElement.baseCommandId === 'internal-while-loop') Icon = ListTree; 
-
-    // Check for unset parameters in loop constructs
-    let loopHasUnsetParams = false;
-    if (loopElement.baseCommandId === 'internal-foreach-loop') {
-        loopHasUnsetParams = !loopElement.parameterValues['InputObject'] || !loopElement.parameterValues['ItemVariable'];
-    } else if (loopElement.baseCommandId === 'internal-for-loop') {
-        loopHasUnsetParams = !loopElement.parameterValues['Initializer'] || !loopElement.parameterValues['Condition'] || !loopElement.parameterValues['Iterator'];
-    } else if (loopElement.baseCommandId === 'internal-while-loop') {
-        loopHasUnsetParams = !loopElement.parameterValues['Condition'];
-    }
+  } else if (command.baseCommandId.startsWith('internal-start-')) {
+    chipStyle = "border-blue-500 hover:border-blue-600 bg-blue-500/10";
+    titleStyle = hasUnsetParameters ? "text-destructive" : "text-blue-700";
+    if (command.baseCommandId === 'internal-start-foreach-loop') icon = <Repeat className="h-4 w-4 text-blue-600 shrink-0" />;
+    else if (command.baseCommandId === 'internal-start-for-loop') icon = <IterationCcw className="h-4 w-4 text-blue-600 shrink-0" />;
+    else if (command.baseCommandId === 'internal-start-while-loop') icon = <ListTree className="h-4 w-4 text-blue-600 shrink-0" />;
+    else icon = <CornerRightDown className="h-4 w-4 text-blue-600 shrink-0" />; // Generic start
+  } else if (command.baseCommandId.startsWith('internal-end-')) {
+    chipStyle = "border-gray-400 hover:border-gray-500 bg-gray-400/10";
+    titleStyle = "text-gray-600";
+    icon = <CornerLeftUp className="h-4 w-4 text-gray-500 shrink-0" />;
+  } else {
+    // Regular command
+    chipStyle = hasUnsetParameters 
+      ? "border-destructive hover:border-destructive/80" 
+      : "border-primary/50 hover:border-primary";
+  }
     
-    return (
-      <Button
-        variant="outline"
-        className={cn(
-          "flex-grow h-auto py-2 px-3 text-left justify-start items-start flex-col shadow-md hover:shadow-lg w-full",
-          "border-blue-500 hover:border-blue-600 bg-blue-500/10" 
-        )}
-        onClick={onClick}
-        aria-label={`Edit loop: ${loopElement.name}${loopHasUnsetParams ? '. This loop has unset parameters.' : ''}`}
-      >
-        <div className={cn(
-          "font-semibold text-blue-700 flex items-center gap-2",
-           loopHasUnsetParams ? "text-destructive" : ""
-        )}>
-          <Icon className="h-4 w-4" />
-          {loopElement.name}
-        </div>
-        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1">
-           {Object.entries(loopElement.parameterValues).map(([key, value]) => {
-            if (value && loopElement.parameters.some(p => p.name === key)) {
-              return (
-                <Badge variant="secondary" key={key} className="font-normal text-xs">
-                  <span className="text-blue-600/90">{key}:</span>&nbsp;"{value}"
-                </Badge>
-              );
-            }
-            return null;
-          })}
-          {loopHasUnsetParams && (<span className="italic text-destructive text-xs">Loop parameters unset. Click to edit.</span>)}
-        </div>
-         <div className="text-xs text-blue-600/80 mt-1 italic">
-            {loopElement.children && loopElement.children.length > 0 ? 'Loop body:' : 'Drop commands here to add to loop body.'}
-        </div>
-      </Button>
-    );
-
-  } else if (command.type === 'command') { 
-    const regularCommand = command as ScriptPowerShellCommand;
-    return (
-      <Button
-        variant="outline"
-        className={cn(
-          "flex-grow h-auto py-1 px-2 text-left justify-start items-start flex-col shadow-sm hover:shadow-md w-full",
-          hasUnsetParameters 
-            ? "border-destructive hover:border-destructive/80" 
-            : "border-primary/50 hover:border-primary"
-        )}
-        onClick={onClick}
-        aria-label={`Edit command ${regularCommand.name}${hasUnsetParameters ? '. This command has unset parameters.' : ''}`}
-      >
-        <div className={cn(
-          "font-semibold",
-          hasUnsetParameters ? "text-destructive" : "text-primary"
-        )}>{regularCommand.name}</div>
-        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1">
-          {regularCommand.parameters.length > 0 && Object.values(regularCommand.parameterValues).every(v => !v) && (
+  return (
+    <Button
+      variant="outline"
+      className={cn(
+        "flex-grow h-auto py-1 px-2 text-left justify-start items-start flex-col shadow-sm hover:shadow-md w-full",
+        chipStyle
+      )}
+      onClick={onClick}
+      aria-label={`Edit command ${command.name}${hasUnsetParameters ? '. This command has unset parameters.' : ''}`}
+    >
+      <div className={cn("font-semibold flex items-center gap-1", titleStyle)}>
+        {icon}
+        {specificChipText}
+      </div>
+      {!command.baseCommandId.startsWith('internal-end-') && (
+        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1 pl-6">
+          {command.parameters.length > 0 && Object.values(command.parameterValues).every(v => !v) && !hasUnsetParameters && (
               <span className="italic">No parameters set. Click to edit.</span>
           )}
-          {regularCommand.parameters.map((param) => {
-            const value = regularCommand.parameterValues[param.name];
+          {command.parameters.map((param) => {
+            const value = command.parameterValues[param.name];
             if (value) { 
               return (
                 <Badge variant="secondary" key={param.name} className="font-normal">
@@ -155,12 +127,14 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
             }
             return null;
           })}
-           {regularCommand.parameters.length === 0 && (
+           {command.parameters.length === 0 && (
               <span className="italic">No parameters for this command.</span>
           )}
+           {hasUnsetParameters && command.parameters.length > 0 && (
+             <span className="italic text-destructive">Required parameters unset. Click to edit.</span>
+           )}
         </div>
-      </Button>
-    );
-  }
-  return null; 
+      )}
+    </Button>
+  );
 }

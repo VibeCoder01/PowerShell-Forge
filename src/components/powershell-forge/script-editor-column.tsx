@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { BasePowerShellCommand, ScriptElement, ScriptType, ScriptPowerShellCommand, RawScriptLine, LoopScriptElement } from '@/types/powershell';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, ScriptPowerShellCommand, RawScriptLine } from '@/types/powershell';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,41 +23,6 @@ interface ScriptEditorColumnProps {
   baseCommands: BasePowerShellCommand[];
 }
 
-// Recursive helper to find an element and its parent array + index
-const findElementRecursive = (
-  elements: ScriptElement[],
-  instanceId: string
-): { element: ScriptElement; parentArray: ScriptElement[]; index: number } | null => {
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
-    if (el.instanceId === instanceId) {
-      return { element: el, parentArray: elements, index: i };
-    }
-    if (el.type === 'loop' && el.children) {
-      const foundInChildren = findElementRecursive(el.children, instanceId);
-      if (foundInChildren) {
-        return foundInChildren;
-      }
-    }
-  }
-  return null;
-};
-
-// Recursive helper to update elements immutably
-const updateElementsRecursive = (
-  elements: ScriptElement[],
-  updateFn: (el: ScriptElement) => ScriptElement
-): ScriptElement[] => {
-  return elements.map(el => {
-    const updatedEl = updateFn(el);
-    if (updatedEl.type === 'loop' && updatedEl.children) {
-      return { ...updatedEl, children: updateElementsRecursive(updatedEl.children, updateFn) };
-    }
-    return updatedEl;
-  });
-};
-
-
 export function ScriptEditorColumn({
   title,
   icon: Icon,
@@ -69,20 +34,19 @@ export function ScriptEditorColumn({
   const [isDraggingOverColumn, setIsDraggingOverColumn] = useState(false);
   const { toast } = useToast();
 
-  const [editingCommand, setEditingCommand] = useState<ScriptPowerShellCommand | LoopScriptElement | null>(null);
+  const [editingCommand, setEditingCommand] = useState<ScriptPowerShellCommand | null>(null);
   const [showParameterDialog, setShowParameterDialog] = useState(false);
 
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-  const [dropTargetInfo, setDropTargetInfo] = useState<{ targetId: string; position: 'before' | 'after' | 'inside'; parentLoopId?: string } | null>(null);
-  const [isDraggingOverItem, setIsDraggingOverItem] = useState<string | null>(null); // For item hover
-  const [isDraggingOverLoopContent, setIsDraggingOverLoopContent] = useState<string | null>(null); // For loop content area hover
+  const [dropTargetInfo, setDropTargetInfo] = useState<{ targetId: string; position: 'before' | 'after'; } | null>(null);
+  const [isDraggingOverItem, setIsDraggingOverItem] = useState<string | null>(null);
   const [dragOperationType, setDragOperationType] = useState<'copy' | 'move' | null>(null);
 
 
   const handleDragStartReorder = (e: React.DragEvent<HTMLDivElement>, instanceId: string) => {
-    const findResult = findElementRecursive(scriptElements, instanceId);
-    if (findResult) {
-      e.dataTransfer.setData('application/json', JSON.stringify(findResult.element));
+    const element = scriptElements.find(el => el.instanceId === instanceId);
+    if (element) {
+      e.dataTransfer.setData('application/json', JSON.stringify(element));
       e.dataTransfer.setData('text/x-powershell-forge-reorder-item', instanceId);
       e.dataTransfer.setData('text/x-powershell-forge-reorder-source-type', scriptType);
       e.dataTransfer.effectAllowed = 'copyMove';
@@ -102,7 +66,7 @@ export function ScriptEditorColumn({
     return 'none';
   };
 
-  const handleDragOverItemOrLoopHeader = (e: React.DragEvent<HTMLDivElement>, targetInstanceId: string) => {
+  const handleDragOverItem = (e: React.DragEvent<HTMLDivElement>, targetInstanceId: string) => {
     e.preventDefault();
     e.stopPropagation();
     const currentDropEffect = determineDropEffect(e);
@@ -113,91 +77,44 @@ export function ScriptEditorColumn({
     const isTopHalf = e.clientY < rect.top + rect.height / 2;
     setDropTargetInfo({ targetId: targetInstanceId, position: isTopHalf ? 'before' : 'after' });
     setIsDraggingOverItem(targetInstanceId);
-    setIsDraggingOverLoopContent(null); // Not over loop content area specifically
-  };
-  
-  const handleDragOverLoopContentArea = (e: React.DragEvent<HTMLDivElement>, loopInstanceId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const currentDropEffect = determineDropEffect(e);
-    e.dataTransfer.dropEffect = currentDropEffect;
-    setDragOperationType(currentDropEffect);
-    setDropTargetInfo({ targetId: loopInstanceId, position: 'inside', parentLoopId: loopInstanceId });
-    setIsDraggingOverLoopContent(loopInstanceId);
-    setIsDraggingOverItem(null); // Not over a specific item's header
   };
   
   const handleDragLeaveTarget = (e: React.DragEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDropTargetInfo(null);
       setIsDraggingOverItem(null);
-      setIsDraggingOverLoopContent(null);
-      // Do not reset dragOperationType here, it's for the column level or overall operation
     }
   };
 
-   const addElement = (
+  const addElementAtIndex = (
     elements: ScriptElement[],
     newElement: ScriptElement,
-    targetId: string | null, // null means add to end of top level or specified parentLoopId
-    position: 'before' | 'after' | 'inside',
-    parentLoopId?: string
+    targetId: string | null,
+    position: 'before' | 'after'
   ): ScriptElement[] => {
-    if (parentLoopId) { // Adding inside a loop
-      return elements.map(el => {
-        if (el.instanceId === parentLoopId && el.type === 'loop') {
-          const newChildren = [...(el.children || [])];
-          if (targetId && position !== 'inside') { // Dropping relative to an item inside the loop
-            const childIndex = newChildren.findIndex(child => child.instanceId === targetId);
-            if (childIndex !== -1) {
-              newChildren.splice(position === 'before' ? childIndex : childIndex + 1, 0, newElement);
-            } else { // Fallback: add to end of children if target not found
-              newChildren.push(newElement);
-            }
-          } else { // Dropping directly into loop content area or if targetId is the loop itself for 'inside'
-            newChildren.push(newElement);
-          }
-          return { ...el, children: newChildren };
-        }
-        if (el.type === 'loop' && el.children) { // Recurse for nested loops
-          return { ...el, children: addElement(el.children, newElement, targetId, position, el.instanceId === parentLoopId ? parentLoopId : undefined) };
-        }
-        return el;
-      });
-    }
-
-    // Adding to top level
     const newElements = [...elements];
-    if (targetId && position !== 'inside' && targetId !== 'column-end') {
+    if (targetId && targetId !== 'column-end') {
       const targetIndex = newElements.findIndex(el => el.instanceId === targetId);
       if (targetIndex !== -1) {
         newElements.splice(position === 'before' ? targetIndex : targetIndex + 1, 0, newElement);
       } else {
-        newElements.push(newElement); // Fallback
+        newElements.push(newElement); // Fallback: add to end if target not found
       }
     } else {
-      newElements.push(newElement);
+      newElements.push(newElement); // Add to end if no targetId or target is 'column-end'
     }
     return newElements;
   };
 
-  const removeElement = (elements: ScriptElement[], elementId: string): { newElements: ScriptElement[], removedElement: ScriptElement | null } => {
+  const removeElementById = (elements: ScriptElement[], elementId: string): { newElements: ScriptElement[], removedElement: ScriptElement | null } => {
     let removed: ScriptElement | null = null;
-    const recurse = (currentElements: ScriptElement[]): ScriptElement[] => {
-      return currentElements.filter(el => {
-        if (el.instanceId === elementId) {
-          removed = el;
-          return false;
-        }
-        if (el.type === 'loop' && el.children) {
-          const result = removeElement(el.children, elementId);
-          el.children = result.newElements;
-          if (result.removedElement && !removed) removed = result.removedElement;
-        }
-        return true;
-      });
-    };
-    const newElements = recurse(elements);
+    const newElements = elements.filter(el => {
+      if (el.instanceId === elementId) {
+        removed = el;
+        return false;
+      }
+      return true;
+    });
     return { newElements, removedElement: removed };
   };
 
@@ -210,69 +127,50 @@ export function ScriptEditorColumn({
     const sourceScriptType = e.dataTransfer.getData('text/x-powershell-forge-reorder-source-type') as ScriptType;
     const draggedElementJson = e.dataTransfer.getData('application/json');
     
-    if (!dropTargetInfo && !isDraggingOverColumn) { // Dropped outside valid area
+    if (!dropTargetInfo && !isDraggingOverColumn) {
       resetDragState();
       return;
     }
 
     let elementToAdd: ScriptElement | null = null;
 
-    // 1. Parse or prepare the element being dropped
-    if (sourceInstanceId && draggedElementJson) { // Existing element from a script column
+    if (sourceInstanceId && draggedElementJson) { 
         try {
             const originalElement = JSON.parse(draggedElementJson) as ScriptElement;
-            if (sourceScriptType === scriptType && dragOperationType === 'move') { // Move within same column
+            if (sourceScriptType === scriptType && dragOperationType === 'move') {
                 // Element will be removed first, then added.
-            } else { // Copy from another column or new command
+            } else { 
                 elementToAdd = { ...originalElement, instanceId: generateUniqueId() };
-                 if (elementToAdd.type === 'loop' && (elementToAdd as LoopScriptElement).children) {
-                    // Deep clone children with new instanceIds if copying a loop
-                    const cloneChildren = (children: ScriptElement[]): ScriptElement[] => 
-                        children.map(child => {
-                            const newChild = {...child, instanceId: generateUniqueId()};
-                            if (newChild.type === 'loop' && newChild.children) {
-                                newChild.children = cloneChildren(newChild.children);
-                            }
-                            return newChild;
-                        });
-                    (elementToAdd as LoopScriptElement).children = cloneChildren((elementToAdd as LoopScriptElement).children);
-                }
             }
         } catch (err) { console.error("Error parsing existing element JSON", err); resetDragState(); return; }
-    } else if (draggedElementJson) { // New command from Command Browser
+    } else if (draggedElementJson) { 
         try {
             const baseCommand = JSON.parse(draggedElementJson) as BasePowerShellCommand;
             const initialParameterValues = baseCommand.parameters.reduce((acc, param) => { acc[param.name] = ''; return acc; }, {} as { [key: string]: string });
             
-            if (baseCommand.isLoop) {
-                if (baseCommand.id === 'internal-foreach-loop') {
+            if (baseCommand.id.startsWith('internal-start-')) {
+                if (baseCommand.id === 'internal-start-foreach-loop') {
                     initialParameterValues['ItemVariable'] = 'item'; 
                     initialParameterValues['InputObject'] = '$collection';
-                } else if (baseCommand.id === 'internal-for-loop') {
+                } else if (baseCommand.id === 'internal-start-for-loop') {
                     initialParameterValues['Initializer'] = '$i = 0';
                     initialParameterValues['Condition'] = '$i -lt 10';
                     initialParameterValues['Iterator'] = '$i++';
-                } else if (baseCommand.id === 'internal-while-loop') {
+                } else if (baseCommand.id === 'internal-start-while-loop') {
                     initialParameterValues['Condition'] = '$true';
                 }
-                elementToAdd = {
-                    instanceId: generateUniqueId(), type: 'loop', baseCommandId: baseCommand.id as LoopScriptElement['baseCommandId'],
-                    name: baseCommand.name, parameters: baseCommand.parameters,
-                    parameterValues: initialParameterValues, children: []
-                };
-            } else {
-                 if (baseCommand.id === 'internal-add-comment') {
-                    initialParameterValues['CommentText'] = 'Your comment here';
-                    initialParameterValues['_prependBlankLine'] = 'true';
-                } else if (baseCommand.id === 'internal-user-prompt') {
-                    initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
-                }
-                elementToAdd = {
-                    instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
-                    parameters: baseCommand.parameters, parameterValues: initialParameterValues,
-                    baseCommandId: baseCommand.id,
-                } as ScriptPowerShellCommand;
+            } else if (baseCommand.id === 'internal-add-comment') {
+                initialParameterValues['CommentText'] = 'Your comment here';
+                initialParameterValues['_prependBlankLine'] = 'true';
+            } else if (baseCommand.id === 'internal-user-prompt') {
+                initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
             }
+
+            elementToAdd = {
+                instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
+                parameters: baseCommand.parameters, parameterValues: initialParameterValues,
+                baseCommandId: baseCommand.id,
+            } as ScriptPowerShellCommand;
         } catch (err) { console.error("Error parsing new command JSON", err); resetDragState(); return; }
     }
 
@@ -282,45 +180,25 @@ export function ScriptEditorColumn({
         let currentElements = [...prevElements];
         let elementBeingMoved: ScriptElement | null = null;
 
-        // If moving, remove the original element first
         if (sourceInstanceId && dragOperationType === 'move') {
-            const removalResult = removeElement(currentElements, sourceInstanceId);
+            const removalResult = removeElementById(currentElements, sourceInstanceId);
             currentElements = removalResult.newElements;
             elementBeingMoved = removalResult.removedElement;
-            if (!elementBeingMoved) { console.error("Failed to find element to move"); return prevElements; } // Should not happen
-            elementToAdd = elementBeingMoved; // Use the actual removed element
+            if (!elementBeingMoved) { console.error("Failed to find element to move"); return prevElements; }
+            elementToAdd = elementBeingMoved; 
         }
         
-        if (!elementToAdd) { return prevElements; } // Safety check
+        if (!elementToAdd) { return prevElements; } 
 
-        // Add the element to its new position
         if (dropTargetInfo) {
-            if (dropTargetInfo.position === 'inside' && dropTargetInfo.parentLoopId) {
-                 // Add to children of parentLoopId
-                return addElement(currentElements, elementToAdd, null, 'inside', dropTargetInfo.parentLoopId);
-            } else if (dropTargetInfo.targetId && dropTargetInfo.targetId !== 'column-end') {
-                 // Add before/after a specific item (could be top-level or nested)
-                // Find the parent array of the target item to correctly determine if we're dropping into a nested context
-                const findTargetInTree = (elementsToSearch: ScriptElement[], targetId: string): {parentArray: ScriptElement[], parentLoopId?: string} | null => {
-                    for (const el of elementsToSearch) {
-                        if (el.instanceId === targetId) return {parentArray: elementsToSearch};
-                        if (el.type === 'loop' && el.children) {
-                            const found = findTargetInTree(el.children, targetId);
-                            if (found) return {parentArray: found.parentArray, parentLoopId: el.instanceId};
-                        }
-                    }
-                    return null;
-                };
-                const targetContext = findTargetInTree(currentElements, dropTargetInfo.targetId);
-                return addElement(currentElements, elementToAdd, dropTargetInfo.targetId, dropTargetInfo.position, targetContext?.parentLoopId);
-            }
+            return addElementAtIndex(currentElements, elementToAdd, dropTargetInfo.targetId, dropTargetInfo.position);
         }
-        // Default: add to end of top-level scriptElements if dropped on column or no specific target
-        currentElements.push(elementToAdd);
+        
+        currentElements.push(elementToAdd); // Add to end if dropped on column or no specific target
         return currentElements;
     });
 
-    toast({ title: 'Element Dropped', description: `${(elementToAdd as any).name || 'Item'} processed.` });
+    toast({ title: 'Element Dropped', description: `${(elementToAdd as ScriptPowerShellCommand).name || 'Item'} processed.` });
     resetDragState();
   };
 
@@ -329,7 +207,6 @@ export function ScriptEditorColumn({
     setDraggingItemId(null);
     setDropTargetInfo(null);
     setIsDraggingOverItem(null);
-    setIsDraggingOverLoopContent(null);
     setIsDraggingOverColumn(false);
     setDragOperationType(null);
   };
@@ -345,8 +222,7 @@ export function ScriptEditorColumn({
     setDragOperationType(currentDropEffect);
     setIsDraggingOverColumn(currentDropEffect !== 'none');
     
-    // If dragging over column content (not a specific item or loop area), target is end of column
-    if (!isDraggingOverItem && !isDraggingOverLoopContent && currentDropEffect !== 'none') {
+    if (!isDraggingOverItem && currentDropEffect !== 'none') {
       setDropTargetInfo({ targetId: 'column-end', position: 'after' });
     }
   };
@@ -354,30 +230,40 @@ export function ScriptEditorColumn({
   const handleDragLeaveColumnContent = (e: React.DragEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDraggingOverColumn(false);
-      // Only reset column-end target if truly leaving column
       if (dropTargetInfo?.targetId === 'column-end') {
         setDropTargetInfo(null);
       }
-      // Don't reset dragOperationType here, as it might still be active over an item
     }
   };
 
 
-  const handleEditCommand = (command: ScriptPowerShellCommand | LoopScriptElement) => {
+  const handleEditCommand = (command: ScriptPowerShellCommand) => {
     const fullBaseCommand = baseCommands.find(bc => bc.id === command.baseCommandId);
     
-    if (command.type === 'loop' || (command.type === 'command' && fullBaseCommand)) {
+    if (fullBaseCommand || command.baseCommandId.startsWith('internal-')) {
         const commandToEdit = { ...command };
-        if (command.type === 'command') {
-            if (command.baseCommandId === 'internal-add-comment' && commandToEdit.parameterValues['_prependBlankLine'] === undefined) {
-                commandToEdit.parameterValues = { ...commandToEdit.parameterValues, '_prependBlankLine': 'true' };
+        if (command.baseCommandId === 'internal-add-comment' && commandToEdit.parameterValues['_prependBlankLine'] === undefined) {
+            commandToEdit.parameterValues = { ...commandToEdit.parameterValues, '_prependBlankLine': 'true' };
+        }
+        if (command.baseCommandId === 'internal-user-prompt' && commandToEdit.parameterValues['PromptText'] === undefined) {
+             commandToEdit.parameterValues = { ...commandToEdit.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' };
+        }
+        if (command.baseCommandId.startsWith('internal-start-')) {
+            const baseLoopCmd = baseCommands.find(bc => bc.id === command.baseCommandId);
+            if (baseLoopCmd) commandToEdit.parameters = baseLoopCmd.parameters;
+
+            if (command.baseCommandId === 'internal-start-foreach-loop') {
+                commandToEdit.parameterValues['ItemVariable'] = commandToEdit.parameterValues['ItemVariable'] || 'item';
+                commandToEdit.parameterValues['InputObject'] = commandToEdit.parameterValues['InputObject'] || '$collection';
+            } else if (command.baseCommandId === 'internal-start-for-loop') {
+                commandToEdit.parameterValues['Initializer'] = commandToEdit.parameterValues['Initializer'] || '$i = 0';
+                commandToEdit.parameterValues['Condition'] = commandToEdit.parameterValues['Condition'] || '$i -lt 10';
+                commandToEdit.parameterValues['Iterator'] = commandToEdit.parameterValues['Iterator'] || '$i++';
+            } else if (command.baseCommandId === 'internal-start-while-loop') {
+                commandToEdit.parameterValues['Condition'] = commandToEdit.parameterValues['Condition'] || '$true';
             }
-            if (command.baseCommandId === 'internal-user-prompt' && commandToEdit.parameterValues['PromptText'] === undefined) {
-                 commandToEdit.parameterValues = { ...commandToEdit.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' };
-            }
-            commandToEdit.parameters = fullBaseCommand?.parameters || command.parameters; // Ensure parameters are fresh from base
-        } else if (command.type === 'loop') {
-             commandToEdit.parameters = fullBaseCommand?.parameters || command.parameters;
+        } else {
+            commandToEdit.parameters = fullBaseCommand?.parameters || command.parameters;
         }
         setEditingCommand(commandToEdit);
         setShowParameterDialog(true);
@@ -388,38 +274,53 @@ export function ScriptEditorColumn({
     }
   };
 
-  const handleSaveEditedCommand = (updatedCommand: ScriptPowerShellCommand | LoopScriptElement) => {
+  const handleSaveEditedCommand = (updatedCommand: ScriptPowerShellCommand) => {
     setScriptElements(prevElements => 
-        updateElementsRecursive(prevElements, el => 
+        prevElements.map(el => 
             el.instanceId === updatedCommand.instanceId ? updatedCommand : el
         )
     );
     setShowParameterDialog(false);
     setEditingCommand(null);
     let toastTitle = 'Item Updated';
-    if (updatedCommand.type === 'command') {
-        if (updatedCommand.baseCommandId === 'internal-add-comment') toastTitle = 'Comment Updated';
-        else if (updatedCommand.baseCommandId === 'internal-user-prompt') toastTitle = 'User Prompt Updated';
-        else toastTitle = 'Command Updated';
-    } else if (updatedCommand.type === 'loop') {
-        toastTitle = 'Loop Updated';
-    }
+    if (updatedCommand.baseCommandId === 'internal-add-comment') toastTitle = 'Comment Updated';
+    else if (updatedCommand.baseCommandId === 'internal-user-prompt') toastTitle = 'User Prompt Updated';
+    else if (updatedCommand.baseCommandId.startsWith('internal-start-') || updatedCommand.baseCommandId.startsWith('internal-end-')) toastTitle = 'Loop Command Updated';
+    else toastTitle = 'Command Updated';
     toast({title: toastTitle, description: `${updatedCommand.name} details saved.`});
   };
 
   const handleRemoveElementWrapper = (instanceId: string) => {
-    setScriptElements(prevElements => removeElement(prevElements, instanceId).newElements);
+    setScriptElements(prevElements => removeElementById(prevElements, instanceId).newElements);
     toast({title: 'Element Removed', description: 'Script element removed.'});
   };
 
-  const renderScriptElements = (elements: ScriptElement[], depth = 0): JSX.Element[] => {
+  const renderScriptElementsList = (elements: ScriptElement[]): JSX.Element[] => {
+    let effectiveIndentLevel = 0; // For visual cues if we decide to add them
+
     return elements.map((element) => {
-      const isCurrentDropTargetItem = dropTargetInfo && dropTargetInfo.targetId === element.instanceId && dropTargetInfo.position !== 'inside';
-      const isCurrentDropTargetLoopContent = dropTargetInfo && dropTargetInfo.targetId === element.instanceId && dropTargetInfo.position === 'inside';
+      const isCurrentDropTargetItem = dropTargetInfo && dropTargetInfo.targetId === element.instanceId;
       const isBeingDragged = draggingItemId === element.instanceId;
+      
+      let currentElementVisualIndent = 0;
+      if (element.type === 'command') {
+          if (element.baseCommandId.startsWith('internal-end-')) {
+              if (effectiveIndentLevel > 0) effectiveIndentLevel--; // Decrease after rendering end
+              currentElementVisualIndent = effectiveIndentLevel;
+          } else {
+              currentElementVisualIndent = effectiveIndentLevel;
+              if (element.baseCommandId.startsWith('internal-start-')) {
+                  effectiveIndentLevel++; // Increase after rendering start
+              }
+          }
+      } else { // RawScriptLine
+          currentElementVisualIndent = effectiveIndentLevel;
+      }
+
+
       const itemDropIndicator = (pos: 'before' | 'after') => (
         isCurrentDropTargetItem && dropTargetInfo!.position === pos &&
-        <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`} style={{ marginLeft: `${depth * 1.5}rem`}}></div>
+        <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`} style={{ marginLeft: `${currentElementVisualIndent * 1.5}rem`}}></div>
       );
 
       return (
@@ -430,16 +331,15 @@ export function ScriptEditorColumn({
             draggable={true}
             onDragStart={(e) => handleDragStartReorder(e, element.instanceId)}
             onDragEnd={handleDragEndReorder}
-            onDragOver={(e) => handleDragOverItemOrLoopHeader(e, element.instanceId)}
+            onDragOver={(e) => handleDragOverItem(e, element.instanceId)}
             onDrop={handleDrop}
             onDragLeave={handleDragLeaveTarget}
             className={cn(
                 "group relative flex items-center py-1 rounded transition-colors",
                 isDraggingOverItem === element.instanceId && !isCurrentDropTargetItem && 'bg-muted/30',
                 isBeingDragged && 'opacity-50',
-                `ml-[${depth * 1.5}rem]` 
+                `ml-[${currentElementVisualIndent * 0.5}rem]` // Basic visual indent for demo
             )}
-            style={{ paddingLeft: `${depth * 0.5}rem` }} // Use padding for actual indentation of content, margin for overall placement
           >
             <GripVertical className="h-5 w-5 text-muted-foreground mr-1 cursor-grab flex-shrink-0" />
             <div className="flex-grow">
@@ -447,42 +347,41 @@ export function ScriptEditorColumn({
                 <div className="p-2 border border-transparent rounded break-all font-mono text-xs">
                   {(element as RawScriptLine).content || <span className="text-muted-foreground">[Empty line]</span>}
                 </div>
-              ) : element.type === 'command' ? (
+              ) : ( // 'command' type
                 (() => {
                   const cmdElement = element as ScriptPowerShellCommand;
-                  let hasUnsetParameters = false;
+                  let hasUnset = false;
                   if (cmdElement.baseCommandId === 'internal-add-comment') {
                      if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
-                        hasUnsetParameters = true;
+                        hasUnset = true;
                      }
                   } else if (cmdElement.baseCommandId === 'internal-user-prompt') {
                     if (!cmdElement.parameterValues['PromptText'] || cmdElement.parameterValues['PromptText'] === 'ACTION NEEDED: [Your prompt text here]') {
-                        hasUnsetParameters = true;
+                        hasUnset = true;
                     }
-                  } else { 
+                  } else if (cmdElement.baseCommandId.startsWith('internal-start-')) {
+                    // Check specific required parameters for each start loop type
+                    if (cmdElement.baseCommandId === 'internal-start-foreach-loop' && (!cmdElement.parameterValues['InputObject'] || !cmdElement.parameterValues['ItemVariable'])) hasUnset = true;
+                    else if (cmdElement.baseCommandId === 'internal-start-for-loop' && (!cmdElement.parameterValues['Initializer'] || !cmdElement.parameterValues['Condition'] || !cmdElement.parameterValues['Iterator'])) hasUnset = true;
+                    else if (cmdElement.baseCommandId === 'internal-start-while-loop' && !cmdElement.parameterValues['Condition']) hasUnset = true;
+                  } else if (!cmdElement.baseCommandId.startsWith('internal-end-')) {
                     const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
                     const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
                                                 .filter(([key]) => !key.startsWith('_') && cmdElement.parameters.some(p => p.name === key))
                                                 .every(([,val]) => val === '');
                     if (hasDefinedParams && allValuesAreEmpty) {
-                      hasUnsetParameters = true;
+                      hasUnset = true;
                     }
                   }
                   return (
                     <ScriptCommandChip
                       command={cmdElement}
                       onClick={() => handleEditCommand(cmdElement)}
-                      hasUnsetParameters={hasUnsetParameters}
+                      hasUnsetParameters={hasUnset}
                     />
                   );
                 })()
-              ) : element.type === 'loop' ? (
-                <ScriptCommandChip
-                  command={element}
-                  onClick={() => handleEditCommand(element)}
-                  isLoopContainer={true}
-                />
-              ) : null}
+              )}
             </div>
             <Button
               variant="ghost"
@@ -494,29 +393,6 @@ export function ScriptEditorColumn({
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
-          
-          {element.type === 'loop' && (
-            <div 
-              className={cn(
-                "my-1 py-2 rounded-md border border-dashed",
-                 isDraggingOverLoopContent === element.instanceId ? (dragOperationType === 'copy' ? 'border-accent bg-accent/10' : 'border-primary bg-primary/10') : 'border-muted-foreground/30',
-                `ml-[${(depth + 1) * 1.5}rem]` 
-              )}
-              style={{ paddingLeft: `${(depth + 1) * 0.5}rem`, minHeight: '2rem' }}
-              onDragOver={(e) => handleDragOverLoopContentArea(e, element.instanceId)}
-              onDrop={handleDrop}
-              onDragLeave={handleDragLeaveTarget}
-              data-loop-content-area-for={element.instanceId}
-            >
-              {element.children && element.children.length > 0 
-                ? renderScriptElements(element.children, depth + 1)
-                : !isDraggingOverLoopContent && <p className="text-xs text-muted-foreground italic px-2">Loop body is empty. Drag commands here.</p>
-              }
-              {isCurrentDropTargetLoopContent && (
-                 <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-1 mx-auto animate-pulse w-3/4`}></div>
-              )}
-            </div>
-          )}
           {itemDropIndicator('after')}
         </React.Fragment>
       );
@@ -547,7 +423,7 @@ export function ScriptEditorColumn({
         <ScrollArea className="h-full w-full">
           <div className="p-4 space-y-1 min-h-[200px] font-mono text-xs">
             {scriptElements.length === 0 && !isDraggingOverColumn && (
-              <p className="text-muted-foreground text-center py-10 text-xs">Drag commands, comments or loops here...</p>
+              <p className="text-muted-foreground text-center py-10 text-xs">Drag commands here...</p>
             )}
             {scriptElements.length === 0 && isDraggingOverColumn && (
               <div className="h-full flex items-center justify-center">
@@ -555,7 +431,7 @@ export function ScriptEditorColumn({
               </div>
             )}
 
-            {renderScriptElements(scriptElements)}
+            {renderScriptElementsList(scriptElements)}
 
             {dropTargetInfo && dropTargetInfo.targetId === 'column-end' && scriptElements.length > 0 && (
                  <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>

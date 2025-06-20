@@ -12,11 +12,11 @@ export interface BasePowerShellCommand {
   parameters: PowerShellCommandParameter[];
   description?: string;
   isCustom?: boolean; // Flag to identify custom commands
-  isLoop?: boolean; // Flag to identify loop constructs from command browser
+  // isLoop property is removed as loops are now handled by start/end commands
 }
 
 // Represents an instance of a PowerShell command within a script, with editable values
-export interface ScriptPowerShellCommand extends Omit<BasePowerShellCommand, 'id' | 'description' | 'isCustom' | 'category' | 'isLoop'> {
+export interface ScriptPowerShellCommand extends Omit<BasePowerShellCommand, 'id' | 'description' | 'isCustom' | 'category'> {
   instanceId: string; // Unique ID for this specific instance in the script
   type: 'command';
   // Base command 'id' can be stored if needed to re-fetch original parameters/description
@@ -31,17 +31,7 @@ export interface RawScriptLine {
   content: string;
 }
 
-// Represents a loop construct in the script
-export interface LoopScriptElement {
-  instanceId: string;
-  type: 'loop';
-  baseCommandId: 'internal-foreach-loop' | 'internal-for-loop' | 'internal-while-loop';
-  name: string; // e.g., "ForEach Loop"
-  parameters: PowerShellCommandParameter[]; // Original parameters of the loop construct itself
-  parameterValues: { [key: string]: string }; // Values for InputObject, Condition etc.
-  children: ScriptElement[]; // The commands inside the loop
-}
-
-export type ScriptElement = ScriptPowerShellCommand | RawScriptLine | LoopScriptElement;
+// LoopScriptElement is removed. Loops are now pairs of commands.
+export type ScriptElement = ScriptPowerShellCommand | RawScriptLine;
 
 export type ScriptType = 'add' | 'launch' | 'remove';

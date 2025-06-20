@@ -50,40 +50,59 @@ export const mockCommands: BasePowerShellCommand[] = [
     description: 'Adds an in-editor visual prompt or to-do item. Not rendered in .ps1 scripts.',
   },
 
-  // Looping Constructs
+  // Loop Control Commands
   {
-    id: 'internal-foreach-loop',
-    name: 'ForEach Loop',
-    category: 'Looping Constructs',
+    id: 'internal-start-foreach-loop',
+    name: 'Start ForEach Loop',
+    category: 'Loop Control',
     parameters: [
       { name: 'InputObject' }, // e.g., $myArray, (Get-Service)
       { name: 'ItemVariable' },  // e.g., item (becomes $item), defaults to 'item'
     ],
-    description: 'Iterates over a collection of items (ForEach-Object).',
-    isLoop: true,
+    description: 'Starts a ForEach-Object loop. Requires a corresponding "End ForEach Loop".',
   },
   {
-    id: 'internal-for-loop',
-    name: 'For Loop',
-    category: 'Looping Constructs',
+    id: 'internal-end-foreach-loop',
+    name: 'End ForEach Loop',
+    category: 'Loop Control',
+    parameters: [],
+    description: 'Ends a ForEach-Object loop.',
+  },
+  {
+    id: 'internal-start-for-loop',
+    name: 'Start For Loop',
+    category: 'Loop Control',
     parameters: [
       { name: 'Initializer' },   // e.g., $i = 0
       { name: 'Condition' },     // e.g., $i -lt 10
       { name: 'Iterator' },      // e.g., $i++
     ],
-    description: 'Repeats commands based on an initializer, condition, and iterator.',
-    isLoop: true,
+    description: 'Starts a For loop. Requires a corresponding "End For Loop".',
   },
   {
-    id: 'internal-while-loop',
-    name: 'While Loop',
-    category: 'Looping Constructs',
+    id: 'internal-end-for-loop',
+    name: 'End For Loop',
+    category: 'Loop Control',
+    parameters: [],
+    description: 'Ends a For loop.',
+  },
+  {
+    id: 'internal-start-while-loop',
+    name: 'Start While Loop',
+    category: 'Loop Control',
     parameters: [
       { name: 'Condition' },     // e.g., $true, $count -gt 0
     ],
-    description: 'Repeats commands as long as a condition is true.',
-    isLoop: true,
+    description: 'Starts a While loop. Requires a corresponding "End While Loop".',
   },
+  {
+    id: 'internal-end-while-loop',
+    name: 'End While Loop',
+    category: 'Loop Control',
+    parameters: [],
+    description: 'Ends a While loop.',
+  },
+
 
   // System Management
   {

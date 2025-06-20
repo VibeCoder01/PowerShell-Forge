@@ -7,83 +7,92 @@ import { ScriptEditorColumn } from '@/components/powershell-forge/script-editor-
 import { ActionsPanel } from '@/components/powershell-forge/actions-panel';
 import { ResizableHandle } from '@/components/powershell-forge/resizable-handle';
 import { mockCommands as initialMockCommands } from '@/data/mock-commands';
-import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter, LoopScriptElement } from '@/types/powershell';
-import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare } from 'lucide-react';
+import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
+import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare, Repeat, IterationCcw, ListTree, CornerRightDown, CornerLeftUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateUniqueId } from '@/lib/utils';
 
 const NUM_COLUMNS = 5;
 const MIN_COLUMN_WIDTH_PERCENT = 5; // Minimum 5% width for any column
-// Adjusted default widths: Command Browser (28%), Editors (20% each), Actions (12%)
 const DEFAULT_COLUMN_WIDTHS_PERCENT = [28, 20, 20, 20, 12]; 
 
-function stringifyScriptElements(elements: ScriptElement[], indentLevel = 0): string {
-  const indent = '  '.repeat(indentLevel);
-  return elements.map(el => {
+function stringifyScriptElements(elements: ScriptElement[]): string {
+  let scriptString = '';
+  let indentLevel = 0;
+  const indentSpaces = '  '; // Two spaces for indentation
+
+  elements.forEach(el => {
     if (el.type === 'raw') {
-      return `${indent}${el.content}`;
-    }
-    if (el.type === 'command') {
+      scriptString += `${indentSpaces.repeat(indentLevel)}${el.content}\n`;
+    } else if (el.type === 'command') {
       const commandElement = el as ScriptPowerShellCommand;
 
-      if (commandElement.baseCommandId === 'internal-add-comment') {
+      // Handle loop end commands
+      if (commandElement.baseCommandId.startsWith('internal-end-')) {
+        if (indentLevel > 0) {
+          indentLevel--;
+        }
+        scriptString += `${indentSpaces.repeat(indentLevel)}}\n`; // Closing brace for the loop
+      } else if (commandElement.baseCommandId === 'internal-add-comment') {
         const commentText = commandElement.parameterValues['CommentText'] || '';
-        const formattedComment = commentText.split('\n').map(line => `${indent}# ${line}`).join('\n');
+        const formattedComment = commentText.split('\n').map(line => `${indentSpaces.repeat(indentLevel)}# ${line}`).join('\n');
         const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false';
-        return (prependBlankLine && indentLevel === 0 ? '\n' : '') + formattedComment; // Only add top-level blank line if not nested
+        if (prependBlankLine && indentLevel === 0) {
+          scriptString += '\n';
+        }
+        scriptString += `${formattedComment}\n`;
+      } else if (commandElement.baseCommandId === 'internal-user-prompt') {
+        // User Prompts are not rendered into the PowerShell script
+      } else {
+        // Handle loop start commands
+        let loopStartSyntax = '';
+        if (commandElement.baseCommandId === 'internal-start-foreach-loop') {
+          const collection = commandElement.parameterValues['InputObject'] || '$null';
+          const itemVar = commandElement.parameterValues['ItemVariable'] || 'item';
+          loopStartSyntax = `foreach ($${itemVar.replace(/^\$/, '')} in ${collection}) {`;
+        } else if (commandElement.baseCommandId === 'internal-start-for-loop') {
+          const initializer = commandElement.parameterValues['Initializer'] || '$i = 0';
+          const condition = commandElement.parameterValues['Condition'] || '$false';
+          const iterator = commandElement.parameterValues['Iterator'] || '$i++';
+          loopStartSyntax = `for (${initializer}; ${condition}; ${iterator}) {`;
+        } else if (commandElement.baseCommandId === 'internal-start-while-loop') {
+          const condition = commandElement.parameterValues['Condition'] || '$false';
+          loopStartSyntax = `while (${condition}) {`;
+        }
+
+        if (loopStartSyntax) {
+          scriptString += `${indentSpaces.repeat(indentLevel)}${loopStartSyntax}\n`;
+          indentLevel++;
+        } else {
+          // Regular command
+          const paramsString = commandElement.parameters
+            .map(param => {
+              const value = commandElement.parameterValues[param.name];
+              return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
+            })
+            .filter(Boolean)
+            .join(' ');
+          scriptString += `${indentSpaces.repeat(indentLevel)}${commandElement.name}${paramsString ? ' ' + paramsString : ''}\n`;
+        }
       }
-
-      if (commandElement.baseCommandId === 'internal-user-prompt') {
-        return ''; // User Prompts are not rendered into the PowerShell script
-      }
-
-      const paramsString = commandElement.parameters
-        .map(param => {
-          const value = commandElement.parameterValues[param.name];
-          // Only include parameters that have a non-empty value
-          // or are boolean-like common parameters that should always be present if set (e.g. -Verbose if its value is '$true')
-          // For simplicity, we'll just check for non-empty string value.
-          return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
-        })
-        .filter(Boolean)
-        .join(' ');
-      return `${indent}${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
-
-    } else if (el.type === 'loop') {
-      const loopEl = el as LoopScriptElement;
-      let loopStart = '';
-      const collection = loopEl.parameterValues['InputObject'] || '$null'; // Default to $null if not specified
-
-      switch (loopEl.baseCommandId) {
-        case 'internal-foreach-loop':
-          const itemVar = loopEl.parameterValues['ItemVariable'] || '_'; // Default to $_
-          loopStart = `${indent}foreach ($${itemVar.replace(/^\$/, '')} in ${collection}) {`;
-          break;
-        case 'internal-for-loop':
-          const initializer = loopEl.parameterValues['Initializer'] || '';
-          const condition = loopEl.parameterValues['Condition'] || '$false'; // Loop won't run if condition is empty
-          const iterator = loopEl.parameterValues['Iterator'] || '';
-          loopStart = `${indent}for (${initializer}; ${condition}; ${iterator}) {`;
-          break;
-        case 'internal-while-loop':
-          const whileCondition = loopEl.parameterValues['Condition'] || '$false'; // Loop won't run if condition is empty
-          loopStart = `${indent}while (${whileCondition}) {`;
-          break;
-        default:
-          // Should not happen if types are correct
-          loopStart = `${indent}# Unsupported loop type: ${loopEl.name}`;
-      }
-      const childrenString = stringifyScriptElements(loopEl.children, indentLevel + 1);
-      const loopEnd = `${indent}}`;
-      return `${loopStart}\n${childrenString}\n${loopEnd}`;
     }
-    return ''; // Should not happen
-  }).join('\n');
+  });
+
+  // Ensure any unclosed loops are handled (though UI should prevent this)
+  while (indentLevel > 0) {
+    indentLevel--;
+    scriptString += `${indentSpaces.repeat(indentLevel)}}\n`;
+  }
+
+  return scriptString.trimEnd(); // Remove trailing newline if any
 }
 
 
 function parseTextToRawScriptLines(text: string): ScriptElement[] {
   if (!text || typeof text !== 'string') return [];
+  // Basic parsing, does not attempt to reconstruct loops from raw text.
+  // Users loading .ps1 files with loops will see them as raw lines.
+  // Only .json files saved by this app will correctly reconstruct Start/End loop commands.
   return text.split('\n').map(line => {
     if (line.trim().startsWith('#')) {
       return {
@@ -120,26 +129,24 @@ function processLoadedElementsRecursive(elements: any[] | undefined): ScriptElem
          newEl.parameterValues = { ...newEl.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' };
       }
     }
-    if (newEl.type === 'loop') {
-      // Ensure children array exists and is processed
-      newEl.children = processLoadedElementsRecursive(newEl.children || []);
-      // Initialize default parameter values if missing for loops from older saves
-      const loopBaseCommand = initialMockCommands.find(cmd => cmd.id === newEl.baseCommandId && cmd.isLoop);
-      if (loopBaseCommand) {
-        newEl.parameters = loopBaseCommand.parameters; // Ensure parameters definition is up-to-date
-        const defaultValues: { [key: string]: string } = {};
-        if (newEl.baseCommandId === 'internal-foreach-loop') {
-          defaultValues['ItemVariable'] = newEl.parameterValues?.['ItemVariable'] || 'item';
-          defaultValues['InputObject'] = newEl.parameterValues?.['InputObject'] || '$collection';
-        } else if (newEl.baseCommandId === 'internal-for-loop') {
-          defaultValues['Initializer'] = newEl.parameterValues?.['Initializer'] || '$i = 0';
-          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$i -lt 10';
-          defaultValues['Iterator'] = newEl.parameterValues?.['Iterator'] || '$i++';
-        } else if (newEl.baseCommandId === 'internal-while-loop') {
-          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$true';
+    // Initialize default parameter values if missing for Start-Loop commands from older saves
+    if (newEl.type === 'command') {
+        const loopBaseCommand = initialMockCommands.find(cmd => cmd.id === newEl.baseCommandId);
+        if (loopBaseCommand && loopBaseCommand.id.startsWith('internal-start-')) {
+            newEl.parameters = loopBaseCommand.parameters; // Ensure parameters definition is up-to-date
+            const defaultValues: { [key: string]: string } = {};
+            if (newEl.baseCommandId === 'internal-start-foreach-loop') {
+                defaultValues['ItemVariable'] = newEl.parameterValues?.['ItemVariable'] || 'item';
+                defaultValues['InputObject'] = newEl.parameterValues?.['InputObject'] || '$collection';
+            } else if (newEl.baseCommandId === 'internal-start-for-loop') {
+                defaultValues['Initializer'] = newEl.parameterValues?.['Initializer'] || '$i = 0';
+                defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$i -lt 10';
+                defaultValues['Iterator'] = newEl.parameterValues?.['Iterator'] || '$i++';
+            } else if (newEl.baseCommandId === 'internal-start-while-loop') {
+                defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$true';
+            }
+            newEl.parameterValues = { ...defaultValues, ...newEl.parameterValues };
         }
-        newEl.parameterValues = { ...defaultValues, ...newEl.parameterValues };
-      }
     }
     return newEl as ScriptElement;
   });
@@ -283,8 +290,10 @@ export default function PowerShellForgePage() {
   };
 
   const handleLoadScript = (type: ScriptType, textContent: string) => {
+    // Note: Loading a .ps1 file will parse it as raw lines. Loops won't be reconstructed.
+    // Only .json files saved by this app will have loop structures preserved.
     scriptElementSetters[type](parseTextToRawScriptLines(textContent));
-    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded. Comments starting with '#' are parsed as editable comment objects.` });
+    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded. Comments starting with '#' are parsed as editable comment objects. Loop structures from .ps1 files are not automatically reconstructed.` });
   };
 
   const handleSaveAllScripts = () => {
