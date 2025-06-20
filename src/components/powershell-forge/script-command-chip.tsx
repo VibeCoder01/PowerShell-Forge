@@ -77,7 +77,9 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
     if (loopElement.baseCommandId === 'internal-while-loop') Icon = ListTree; // Using ListTree as a placeholder for While
 
     // Check for unset parameters in loop constructs (simplified check)
-    const loopHasUnsetParams = Object.values(loopElement.parameterValues).some(val => val === '');
+    const loopHasUnsetParams = Object.entries(loopElement.parameterValues)
+      .filter(([key]) => loopElement.parameters.some(p => p.name === key)) // Only check defined parameters
+      .some(([,val]) => val === '');
     
     return (
       <Button
@@ -98,7 +100,8 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
         </div>
         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1">
            {Object.entries(loopElement.parameterValues).map(([key, value]) => {
-            if (value) {
+            // Only display parameters that have a value and are defined for the loop
+            if (value && loopElement.parameters.some(p => p.name === key)) {
               return (
                 <Badge variant="secondary" key={key} className="font-normal text-xs">
                   <span className="text-blue-600/90">{key}:</span>&nbsp;"{value}"
@@ -107,7 +110,7 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
             }
             return null;
           })}
-          {loopHasUnsetParams && (<span className="italic text-destructive">Some loop parameters are unset.</span>)}
+          {loopHasUnsetParams && (<span className="italic text-destructive">Loop parameters unset. Click to edit.</span>)}
         </div>
          <div className="text-xs text-blue-600/80 mt-1 italic">
             Drop commands here to add to loop body.
@@ -157,3 +160,4 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
   }
   return null; // Should not happen
 }
+

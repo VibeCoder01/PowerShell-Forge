@@ -151,7 +151,7 @@ export function ScriptEditorColumn({
             const childIndex = newChildren.findIndex(child => child.instanceId === targetId);
             if (childIndex !== -1) {
               newChildren.splice(position === 'before' ? childIndex : childIndex + 1, 0, newElement);
-            } else { // Fallback: add to end of children if target not found (should not happen)
+            } else { // Fallback: add to end of children if target not found
               newChildren.push(newElement);
             }
           } else { // Dropping directly into loop content area or if targetId is the loop itself for 'inside'
@@ -160,7 +160,7 @@ export function ScriptEditorColumn({
           return { ...el, children: newChildren };
         }
         if (el.type === 'loop' && el.children) { // Recurse for nested loops
-          return { ...el, children: addElement(el.children, newElement, targetId, position, parentLoopId) };
+          return { ...el, children: addElement(el.children, newElement, targetId, position, el.instanceId === parentLoopId ? parentLoopId : undefined) };
         }
         return el;
       });
@@ -300,9 +300,19 @@ export function ScriptEditorColumn({
                 return addElement(currentElements, elementToAdd, null, 'inside', dropTargetInfo.parentLoopId);
             } else if (dropTargetInfo.targetId && dropTargetInfo.targetId !== 'column-end') {
                  // Add before/after a specific item (could be top-level or nested)
-                const parentInfo = findElementRecursive(currentElements, dropTargetInfo.targetId);
-                const loopParent = parentInfo?.parentArray.find(el => el.type === 'loop' && el.children === parentInfo.parentArray) as LoopScriptElement | undefined;
-                return addElement(currentElements, elementToAdd, dropTargetInfo.targetId, dropTargetInfo.position, loopParent?.instanceId);
+                // Find the parent array of the target item to correctly determine if we're dropping into a nested context
+                const findTargetInTree = (elementsToSearch: ScriptElement[], targetId: string): {parentArray: ScriptElement[], parentLoopId?: string} | null => {
+                    for (const el of elementsToSearch) {
+                        if (el.instanceId === targetId) return {parentArray: elementsToSearch};
+                        if (el.type === 'loop' && el.children) {
+                            const found = findTargetInTree(el.children, targetId);
+                            if (found) return {parentArray: found.parentArray, parentLoopId: el.instanceId};
+                        }
+                    }
+                    return null;
+                };
+                const targetContext = findTargetInTree(currentElements, dropTargetInfo.targetId);
+                return addElement(currentElements, elementToAdd, dropTargetInfo.targetId, dropTargetInfo.position, targetContext?.parentLoopId);
             }
         }
         // Default: add to end of top-level scriptElements if dropped on column or no specific target
@@ -452,7 +462,7 @@ export function ScriptEditorColumn({
                   } else { 
                     const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
                     const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
-                                                .filter(([key]) => !key.startsWith('_'))
+                                                .filter(([key]) => !key.startsWith('_') && cmdElement.parameters.some(p => p.name === key))
                                                 .every(([,val]) => val === '');
                     if (hasDefinedParams && allValuesAreEmpty) {
                       hasUnsetParameters = true;
@@ -568,3 +578,4 @@ export function ScriptEditorColumn({
     </Card>
   );
 }
+
