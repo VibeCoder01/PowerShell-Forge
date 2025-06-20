@@ -5,7 +5,7 @@ import React, { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Save, FolderOpen, Settings2, Download, Upload, FileText } from 'lucide-react';
+import { Settings2, Download, Upload, FileText } from 'lucide-react';
 import type { ScriptType, ScriptElement } from '@/types/powershell';
 
 interface ActionsPanelProps {
@@ -72,12 +72,12 @@ export function ActionsPanel({
           Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 flex-grow space-y-4">
+      <CardContent className="p-2 flex-grow space-y-3">
         <div>
-          <h3 className="text-xs font-semibold mb-2 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
+          <h3 className="text-xs font-semibold mb-1.5 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
-            <div key={type} className="mb-2 p-2 border rounded-md bg-background/50">
-              <p className="capitalize font-medium mb-1.5 text-xs">{type} Script (.ps1)</p>
+            <div key={type} className="mb-1.5 p-1.5 border rounded-md bg-background/50">
+              <p className="capitalize font-medium mb-1 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1 text-xs">
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Save
@@ -96,9 +96,9 @@ export function ActionsPanel({
               </div>
             </div>
           ))}
-          <Separator className="my-2" />
-           <div className="mb-2 p-2 border rounded-md bg-background/50">
-              <p className="font-medium mb-1.5 text-xs">All Scripts (.json)</p>
+          <Separator className="my-1.5" />
+           <div className="mb-1.5 p-1.5 border rounded-md bg-background/50">
+              <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="flex-1 text-xs">
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Save All
