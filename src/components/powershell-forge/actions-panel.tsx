@@ -66,7 +66,7 @@ export function ActionsPanel({
 
   return (
     <Card className="h-full flex flex-col shadow-xl w-fit">
-      <CardHeader className="py-3 px-4 pr-4 border-b">
+      <CardHeader className="py-3 px-4 pr-4 pl-4 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Actions
@@ -97,7 +97,7 @@ export function ActionsPanel({
             </div>
           ))}
           <Separator className="my-1" />
-           <div className="mb-1 p-1 border rounded-md bg-secondary">
+           <div className="mb-1 p-1 border rounded-md bg-accent/20">
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
