@@ -24,7 +24,8 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
       const commentText = commandElement.parameterValues['CommentText'] || '';
       // Ensure each line of a multi-line comment input starts with #
       // User input in textarea for multiple lines will have '\n'
-      return commentText.split('\n').map(line => `# ${line}`).join('\n');
+      const formattedComment = commentText.split('\n').map(line => `# ${line}`).join('\n');
+      return '\n' + formattedComment; // Prepend newline here
     }
 
     const paramsString = commandElement.parameters
@@ -266,5 +267,7 @@ export default function PowerShellForgePage() {
     </div>
   );
 }
+
+    
 
     
