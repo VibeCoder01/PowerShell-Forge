@@ -22,10 +22,10 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
 
     if (commandElement.baseCommandId === 'internal-add-comment') {
       const commentText = commandElement.parameterValues['CommentText'] || '';
-      // Ensure each line of a multi-line comment input starts with #
       // User input in textarea for multiple lines will have '\n'
       const formattedComment = commentText.split('\n').map(line => `# ${line}`).join('\n');
-      return '\n' + formattedComment; // Prepend newline here
+      const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false'; // Defaults to true if 'true' or undefined
+      return (prependBlankLine ? '\n' : '') + formattedComment;
     }
 
     const paramsString = commandElement.parameters
@@ -52,8 +52,11 @@ function parseTextToRawScriptLines(text: string): ScriptElement[] {
         type: 'command',
         name: 'Comment', // Matches the name in mock-commands.ts
         baseCommandId: 'internal-add-comment',
-        parameters: [{ name: 'CommentText' }],
-        parameterValues: { 'CommentText': line.trim().substring(1).trim() } // Store text without leading #
+        parameters: [{ name: 'CommentText' }], // Defined in mock-commands.ts
+        parameterValues: { 
+          'CommentText': line.trim().substring(1).trim(), // Store text without leading #
+          '_prependBlankLine': 'true' // Default for loaded comments
+        }
       } as ScriptPowerShellCommand;
     }
     return {
@@ -101,11 +104,23 @@ export default function PowerShellForgePage() {
           if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type &&
             (el.type === 'raw' || (el.type === 'command' && (el as ScriptPowerShellCommand).baseCommandId))
           )) {
-            setter(parsed);
+            // Ensure _prependBlankLine defaults for older saved comment commands
+            const processedParsed = parsed.map(el => {
+              if (el.type === 'command' && el.baseCommandId === 'internal-add-comment') {
+                const cmdEl = el as ScriptPowerShellCommand;
+                if (cmdEl.parameterValues['_prependBlankLine'] === undefined) {
+                  return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, '_prependBlankLine': 'true' }};
+                }
+              }
+              return el;
+            });
+            setter(processedParsed);
           } else if (typeof savedData === 'string' && !savedData.startsWith('[')) {
+            // This branch handles old plain text format (deprecated for script elements)
             setter(parseTextToRawScriptLines(savedData));
           }
         } catch (e) {
+          // Fallback for very old plain text data or malformed JSON
           if (typeof savedData === 'string') {
             setter(parseTextToRawScriptLines(savedData));
           }
@@ -187,9 +202,21 @@ export default function PowerShellForgePage() {
   };
 
   const handleLoadAllScripts = (loadedScripts: { add: ScriptElement[]; launch: ScriptElement[]; remove: ScriptElement[] }) => {
-    setAddScriptElements(loadedScripts.add || []);
-    setLaunchScriptElements(loadedScripts.launch || []);
-    setRemoveScriptElements(loadedScripts.remove || []);
+     const processLoadedElements = (elements: ScriptElement[] | undefined) => {
+      if (!elements) return [];
+      return elements.map(el => {
+        if (el.type === 'command' && el.baseCommandId === 'internal-add-comment') {
+          const cmdEl = el as ScriptPowerShellCommand;
+          if (cmdEl.parameterValues['_prependBlankLine'] === undefined) {
+            return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, '_prependBlankLine': 'true' }};
+          }
+        }
+        return el;
+      });
+    };
+    setAddScriptElements(processLoadedElements(loadedScripts.add));
+    setLaunchScriptElements(processLoadedElements(loadedScripts.launch));
+    setRemoveScriptElements(processLoadedElements(loadedScripts.remove));
     toast({ title: 'All Scripts Loaded', description: 'All scripts have been loaded successfully.' });
   };
 
@@ -267,7 +294,3 @@ export default function PowerShellForgePage() {
     </div>
   );
 }
-
-    
-
-    

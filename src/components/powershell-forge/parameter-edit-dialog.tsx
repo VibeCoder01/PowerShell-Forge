@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
 import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown, MessageSquareText } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Checkbox } from "@/components/ui/checkbox";
 import { generateUniqueId } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -71,13 +72,24 @@ export function ParameterEditDialog({
 
   useEffect(() => {
     if (command) {
-      setCurrentParameterValues({ ...command.parameterValues });
+      const initialValues = { ...command.parameterValues };
+      // Ensure _prependBlankLine defaults to true if not present (e.g. older data)
+      if (isCommentCommand && initialValues['_prependBlankLine'] === undefined) {
+        initialValues['_prependBlankLine'] = 'true';
+      }
+      setCurrentParameterValues(initialValues);
       
       if (!isCommentCommand) {
         const definedParamNames = command.parameters.map(p => p.name);
         const commonParamNames = COMMON_PARAMETERS_LIST.map(p => p.name);
+        // Ad-hoc params are those in parameterValues not in defined or common params
         const existingAdHoc = Object.keys(command.parameterValues)
-          .filter(key => !definedParamNames.includes(key) && !commonParamNames.includes(key) && key !== 'CommentText')
+          .filter(key => 
+            !definedParamNames.includes(key) && 
+            !commonParamNames.includes(key) &&
+            key !== 'CommentText' && // Exclude comment text itself
+            key !== '_prependBlankLine' // Exclude our internal flag
+          )
           .map(name => ({ id: generateUniqueId(), name }));
         setAdHocParams(existingAdHoc);
       } else {
@@ -88,6 +100,12 @@ export function ParameterEditDialog({
 
   const handleValueChange = (paramName: string, value: string) => {
     setCurrentParameterValues(prev => ({ ...prev, [paramName]: value }));
+  };
+
+  const handlePrependBlankLineChange = (checked: boolean | "indeterminate") => {
+    if (typeof checked === 'boolean') {
+      setCurrentParameterValues(prev => ({ ...prev, ['_prependBlankLine']: checked ? 'true' : 'false' }));
+    }
   };
 
   const handleSubmit = () => {
@@ -167,13 +185,36 @@ export function ParameterEditDialog({
         <ScrollArea className="max-h-[65vh] pr-2">
           <div className="space-y-6 py-4 pr-4">
 
-            {(specificParameters.length > 0 || isCommentCommand) && (
+            {isCommentCommand && (
               <div className="space-y-4">
-                <h3 className="text-md font-semibold text-foreground">
-                  {isCommentCommand ? 'Comment Text' : 'Specific Parameters'}
-                </h3>
+                <Label htmlFor="CommentText" className="text-md font-semibold text-foreground">Comment Text</Label>
+                <Textarea
+                  id="CommentText"
+                  value={currentParameterValues['CommentText'] || ''}
+                  onChange={(e) => handleValueChange('CommentText', e.target.value)}
+                  className="flex-grow"
+                  placeholder="Enter comment text"
+                  rows={4}
+                />
+                <div className="flex items-center space-x-2 mt-4 pl-1">
+                  <Checkbox
+                    id="prepend-blank-line"
+                    checked={currentParameterValues['_prependBlankLine'] !== 'false'} // Defaults to checked if 'true' or undefined
+                    onCheckedChange={handlePrependBlankLineChange}
+                    aria-label="Prepend blank line before comment"
+                  />
+                  <Label htmlFor="prepend-blank-line" className="text-sm font-normal text-muted-foreground">
+                    Prepend blank line before comment in script output
+                  </Label>
+                </div>
+              </div>
+            )}
+
+            {!isCommentCommand && specificParameters.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-md font-semibold text-foreground">Specific Parameters</h3>
                 {specificParameters.map((param) => {
-                  const isPotentiallyPathOrFileName = !isCommentCommand &&
+                  const isPotentiallyPathOrFileName = 
                     (pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
                     fileNameParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()));
 
@@ -183,24 +224,13 @@ export function ParameterEditDialog({
                         {param.name}
                       </Label>
                       <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'md:col-span-3' : 'md:col-span-4'} py-1 pr-1`}>
-                        {isCommentCommand && param.name === 'CommentText' ? (
-                          <Textarea
-                            id={param.name}
-                            value={currentParameterValues[param.name] || ''}
-                            onChange={(e) => handleValueChange(param.name, e.target.value)}
-                            className="flex-grow"
-                            placeholder="Enter comment text"
-                            rows={4}
-                          />
-                        ) : (
-                          <Input
-                            id={param.name}
-                            value={currentParameterValues[param.name] || ''}
-                            onChange={(e) => handleValueChange(param.name, e.target.value)}
-                            className="flex-grow"
-                            placeholder={`Value for ${param.name}`}
-                          />
-                        )}
+                        <Input
+                          id={param.name}
+                          value={currentParameterValues[param.name] || ''}
+                          onChange={(e) => handleValueChange(param.name, e.target.value)}
+                          className="flex-grow"
+                          placeholder={`Value for ${param.name}`}
+                        />
                       </div>
                       {isPotentiallyPathOrFileName && (
                         <Button
@@ -218,14 +248,14 @@ export function ParameterEditDialog({
                 })}
               </div>
             )}
-            {specificParameters.length === 0 && !isCommentCommand && !adHocParams.length && (
-                 <p className="text-sm text-muted-foreground">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
+            {!isCommentCommand && specificParameters.length === 0 && !adHocParams.length && (
+                 <p className="text-sm text-muted-foreground pl-1">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
             )}
 
             {!isCommentCommand && (
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion type="single" collapsible className="w-full pt-2">
                 <AccordionItem value="common-parameters">
-                  <AccordionTrigger className="text-md font-semibold hover:no-underline">
+                  <AccordionTrigger className="text-md font-semibold hover:no-underline pl-1">
                     <div className="flex items-center gap-2">
                       <ChevronsUpDown className="h-4 w-4" /> Common Parameters
                     </div>
@@ -250,7 +280,7 @@ export function ParameterEditDialog({
                 </AccordionItem>
 
                 <AccordionItem value="adhoc-parameters">
-                  <AccordionTrigger className="text-md font-semibold hover:no-underline">
+                  <AccordionTrigger className="text-md font-semibold hover:no-underline pl-1">
                     <div className="flex items-center gap-2">
                       <ChevronsUpDown className="h-4 w-4" /> Additional Custom Parameters ({adHocParams.length})
                     </div>
@@ -280,7 +310,7 @@ export function ParameterEditDialog({
                         </Button>
                       </div>
                     ))}
-                    <div className="pt-4 space-y-2 border-t mt-4">
+                    <div className="pt-4 space-y-2 border-t mt-4 pl-1">
                       <Label className="text-sm font-medium">Add New Custom Parameter</Label>
                       <div className="flex flex-col sm:flex-row items-stretch gap-2">
                         <Input
@@ -324,4 +354,3 @@ export function ParameterEditDialog({
     </Dialog>
   );
 }
-

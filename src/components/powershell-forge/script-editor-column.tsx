@@ -49,8 +49,9 @@ export function ScriptEditorColumn({
         return acc;
       }, {} as { [key: string]: string });
 
-      if (baseCommand.id === 'internal-add-comment' && baseCommand.parameters[0]?.name === 'CommentText') {
+      if (baseCommand.id === 'internal-add-comment') {
         initialParameterValues['CommentText'] = 'Your comment here'; // Default text for new comments
+        initialParameterValues['_prependBlankLine'] = 'true'; // Default for new comments
       }
       
       const newScriptCommand: ScriptPowerShellCommand = {
@@ -89,26 +90,27 @@ export function ScriptEditorColumn({
   };
 
   const handleEditCommand = (command: ScriptPowerShellCommand) => {
-    // For comments, the baseCommand itself in mock-commands.ts already has the correct 'CommentText' parameter.
-    // For other commands, find the full base command to ensure all its defined parameters are available for editing.
     const fullBaseCommand = baseCommands.find(bc => bc.id === command.baseCommandId);
 
     if (fullBaseCommand) {
+        // Ensure _prependBlankLine has a default if somehow missing (e.g. older stored data)
+        const commandToEdit = { ...command };
+        if (commandToEdit.baseCommandId === 'internal-add-comment' && commandToEdit.parameterValues['_prependBlankLine'] === undefined) {
+            commandToEdit.parameterValues = { ...commandToEdit.parameterValues, '_prependBlankLine': 'true' };
+        }
+
         setEditingCommand({
-            ...command,
-            // Ensure the parameters for editing are from the canonical base command definition
+            ...commandToEdit,
             parameters: fullBaseCommand.parameters, 
         });
         setShowParameterDialog(true);
     } else {
-        // This case should ideally not be hit if baseCommands is comprehensive
-        // but acts as a fallback, especially if a command instance somehow exists without a baseCommandId match.
         toast({
             variant: 'destructive',
             title: 'Error',
             description: `Base command definition for "${command.name}" not found. Editing may be incomplete.`,
         });
-        setEditingCommand(command); // Allow editing with whatever parameters the instance currently has
+        setEditingCommand(command); 
         setShowParameterDialog(true);
     }
   };
@@ -153,7 +155,7 @@ export function ScriptEditorColumn({
               <p className="text-muted-foreground text-center py-10">Drag commands or comments here...</p>
             )}
             {scriptElements.map((element) => {
-              if (element.type === 'raw') { // Should not happen for new elements if all are commands now
+              if (element.type === 'raw') { 
                 return (
                   <div key={element.instanceId} className="group relative flex items-center">
                      <div className="p-2 border border-transparent rounded hover:border-muted-foreground/50 flex-grow break-all">
@@ -172,21 +174,19 @@ export function ScriptEditorColumn({
                 );
               }
               
-              // element.type === 'command' (includes comments)
               const cmdElement = element as ScriptPowerShellCommand;
               let hasUnsetParameters = false;
               if (cmdElement.baseCommandId !== 'internal-add-comment') {
                 const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
-                // Check if any specific parameter that *expects* a value is empty.
-                // Common parameters or boolean-like specific parameters might be legitimately empty or have default behavior.
-                // This is a simple check: if there are params and ALL values are empty strings.
-                const allValuesAreEmpty = Object.values(cmdElement.parameterValues).every(val => val === '');
+                const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
+                                            .filter(([key]) => !key.startsWith('_')) // Exclude internal keys like _prependBlankLine
+                                            .every(([,val]) => val === '');
                 if (hasDefinedParams && allValuesAreEmpty) {
                   hasUnsetParameters = true;
                 }
-              } else { // For comments, 'unset' means CommentText is empty or just the placeholder
+              } else { 
                  if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
-                    hasUnsetParameters = true; // Or a different kind of visual cue for unset comments
+                    hasUnsetParameters = true; 
                  }
               }
 
@@ -228,4 +228,3 @@ export function ScriptEditorColumn({
     </Card>
   );
 }
-
