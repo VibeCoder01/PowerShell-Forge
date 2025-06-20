@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -42,24 +43,37 @@ export function ScriptEditorColumn({
       const commandJson = e.dataTransfer.getData('application/json');
       if (!commandJson) return;
       const baseCommand = JSON.parse(commandJson) as BasePowerShellCommand;
-      
-      const newScriptCommand: ScriptPowerShellCommand = {
-        instanceId: generateUniqueId(),
-        type: 'command',
-        name: baseCommand.name,
-        parameters: baseCommand.parameters, 
-        parameterValues: baseCommand.parameters.reduce((acc, param) => {
-          acc[param.name] = ''; 
-          return acc;
-        }, {} as { [key: string]: string }),
-        baseCommandId: baseCommand.id,
-      };
 
-      setScriptElements(prev => [...prev, newScriptCommand]);
-      toast({
-        title: 'Command Added',
-        description: `${baseCommand.name} added to ${title} script. Click to edit parameters.`,
-      });
+      if (baseCommand.id === 'internal-add-comment') {
+        const newCommentElement: RawScriptLine = {
+          instanceId: generateUniqueId(),
+          type: 'raw',
+          content: '# Your comment here',
+        };
+        setScriptElements(prev => [...prev, newCommentElement]);
+        toast({
+          title: 'Comment Added',
+          description: 'A comment line has been added.',
+        });
+      } else {
+        const newScriptCommand: ScriptPowerShellCommand = {
+          instanceId: generateUniqueId(),
+          type: 'command',
+          name: baseCommand.name,
+          parameters: baseCommand.parameters, 
+          parameterValues: baseCommand.parameters.reduce((acc, param) => {
+            acc[param.name] = ''; 
+            return acc;
+          }, {} as { [key: string]: string }),
+          baseCommandId: baseCommand.id,
+        };
+
+        setScriptElements(prev => [...prev, newScriptCommand]);
+        toast({
+          title: 'Command Added',
+          description: `${baseCommand.name} added to ${title} script. Click to edit parameters.`,
+        });
+      }
     } catch (error) {
       console.error('Failed to parse dropped data:', error);
       toast({
@@ -90,6 +104,11 @@ export function ScriptEditorColumn({
       setShowParameterDialog(true);
     } else {
       // Fallback for custom commands or commands not in baseCommands (should ideally not happen for non-custom)
+      // Also handles the 'internal-add-comment' if it were to somehow be treated as a command for editing.
+      if (command.baseCommandId === 'internal-add-comment') {
+        toast({variant: 'default', title: 'Info', description: 'Comments are added as raw text lines and cannot be edited with this dialog.'});
+        return;
+      }
       setEditingCommand(command); 
       setShowParameterDialog(true);
       toast({variant: 'default', title: 'Editing Command', description: `Editing parameters for ${command.name}. Base command details might be limited if it's a fully custom entry not in the library.`});
