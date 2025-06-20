@@ -23,7 +23,8 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
     if (commandElement.baseCommandId === 'internal-add-comment') {
       const commentText = commandElement.parameterValues['CommentText'] || '';
       // Ensure each line of a multi-line comment input starts with #
-      return commentText.split('\\n').map(line => `# ${line}`).join('\\n');
+      // User input in textarea for multiple lines will have '\n'
+      return commentText.split('\n').map(line => `# ${line}`).join('\n');
     }
 
     const paramsString = commandElement.parameters
@@ -31,21 +32,19 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
         const value = commandElement.parameterValues[param.name];
         // Only include parameter if value is not empty or undefined
         // Basic quoting, PowerShell uses backtick to escape quotes within double-quoted strings
-        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : ''; 
+        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
       })
       .filter(Boolean) // Remove empty strings
       .join(' ');
     return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
-  }).join('\\n');
+  }).join('\n'); // Use actual newline character for joining lines
 }
 
-// Helper function to parse plain text script into RawScriptLine[]
-// Future: This could be enhanced to parse comments back into comment command objects.
+// Helper function to parse plain text script into ScriptElement[]
 function parseTextToRawScriptLines(text: string): ScriptElement[] {
   if (!text || typeof text !== 'string') return [];
-  return text.split('\\n').map(line => {
+  return text.split('\n').map(line => { // Split by actual newline character
     // Basic check if it's a comment, convert to our comment command structure
-    // This is a simplified approach. For robust parsing, a more complex parser would be needed.
     if (line.trim().startsWith('#')) {
       return {
         instanceId: generateUniqueId(),
@@ -68,7 +67,7 @@ function parseTextToRawScriptLines(text: string): ScriptElement[] {
 export default function PowerShellForgePage() {
   const [mockCommands, setMockCommands] = useState<BasePowerShellCommand[]>([]);
   const [customCommands, setCustomCommands] = useState<BasePowerShellCommand[]>([]);
-  
+
   const [addScriptElements, setAddScriptElements] = useState<ScriptElement[]>([]);
   const [launchScriptElements, setLaunchScriptElements] = useState<ScriptElement[]>([]);
   const [removeScriptElements, setRemoveScriptElements] = useState<ScriptElement[]>([]);
@@ -77,7 +76,7 @@ export default function PowerShellForgePage() {
 
   useEffect(() => {
     setMockCommands(initialMockCommands);
-    
+
     const savedCustomCommands = localStorage.getItem('powershellForge_customCommands');
     if (savedCustomCommands) {
       try {
@@ -91,23 +90,21 @@ export default function PowerShellForgePage() {
       }
     }
   }, []);
-  
+
   useEffect(() => {
     const loadFromLocalStorage = (key: string, setter: React.Dispatch<React.SetStateAction<ScriptElement[]>>) => {
       const savedData = localStorage.getItem(key);
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData) as ScriptElement[];
-          // Validate structure more carefully
-          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type && 
+          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type &&
             (el.type === 'raw' || (el.type === 'command' && (el as ScriptPowerShellCommand).baseCommandId))
           )) {
             setter(parsed);
-          } else if (typeof savedData === 'string' && !savedData.startsWith('[')) { // Heuristic: if not JSON array, treat as plain text
+          } else if (typeof savedData === 'string' && !savedData.startsWith('[')) {
             setter(parseTextToRawScriptLines(savedData));
           }
-        } catch (e) { 
-          // If JSON parsing fails, assume it might be plain text from an older version or manual edit
+        } catch (e) {
           if (typeof savedData === 'string') {
             setter(parseTextToRawScriptLines(savedData));
           }
@@ -118,7 +115,7 @@ export default function PowerShellForgePage() {
     loadFromLocalStorage('powershellForge_addScriptElements', setAddScriptElements);
     loadFromLocalStorage('powershellForge_launchScriptElements', setLaunchScriptElements);
     loadFromLocalStorage('powershellForge_removeScriptElements', setRemoveScriptElements);
-    
+
   }, []);
 
   useEffect(() => {
@@ -194,7 +191,7 @@ export default function PowerShellForgePage() {
     setRemoveScriptElements(loadedScripts.remove || []);
     toast({ title: 'All Scripts Loaded', description: 'All scripts have been loaded successfully.' });
   };
-  
+
   const handleAddNewCustomCommand = useCallback((commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[] }) => {
     const newCustomCommand: BasePowerShellCommand = {
       ...commandData,
@@ -221,10 +218,10 @@ export default function PowerShellForgePage() {
       </header>
       <main className="flex-grow grid grid-cols-1 md:grid-cols-10 gap-4 overflow-hidden">
         <div className="md:col-span-2 h-full overflow-y-auto">
-          <CommandBrowser 
-            mockCommands={mockCommands} 
+          <CommandBrowser
+            mockCommands={mockCommands}
             customCommands={customCommands}
-            onSaveCustomCommand={handleAddNewCustomCommand} 
+            onSaveCustomCommand={handleAddNewCustomCommand}
           />
         </div>
         <div className="md:col-span-2 h-full overflow-y-auto">
@@ -260,12 +257,14 @@ export default function PowerShellForgePage() {
         <div className="md:col-span-2 h-full overflow-y-auto">
           <ActionsPanel
             onSaveScript={handleSaveScript}
-            onLoadScript={handleLoadScript} 
+            onLoadScript={handleLoadScript}
             onSaveAllScripts={handleSaveAllScripts}
-            onLoadAllScripts={handleLoadAllScripts} 
+            onLoadAllScripts={handleLoadAllScripts}
           />
         </div>
       </main>
     </div>
   );
 }
+
+    
