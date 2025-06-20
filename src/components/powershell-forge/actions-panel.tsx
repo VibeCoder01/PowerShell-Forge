@@ -101,10 +101,10 @@ export function ActionsPanel({
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
-                  <Download className="mr-1.5 h-3.5 w-3.5" /> Save All
+                  <Download className="mr-1.5 h-3.5 w-3.5" /> Save
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => triggerFileInput('all')} className="text-xs">
-                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Load All
+                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Load
                 </Button>
                  <input
                   type="file"
