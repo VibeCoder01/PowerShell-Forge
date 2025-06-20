@@ -14,8 +14,8 @@ import { generateUniqueId } from '@/lib/utils';
 
 const NUM_COLUMNS = 5;
 const MIN_COLUMN_WIDTH_PERCENT = 5; // Minimum 5% width for any column
-// Adjusted default widths: Command Browser (25%), Editors (20% each), Actions (15%)
-const DEFAULT_COLUMN_WIDTHS_PERCENT = [25, 20, 20, 20, 15]; 
+// Adjusted default widths: Command Browser (28%), Editors (20% each), Actions (12%)
+const DEFAULT_COLUMN_WIDTHS_PERCENT = [28, 20, 20, 20, 12]; 
 
 function stringifyScriptElements(elements: ScriptElement[]): string {
   return elements.map(el => {
