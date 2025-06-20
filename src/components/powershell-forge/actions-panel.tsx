@@ -74,16 +74,16 @@ export function ActionsPanel({
       </CardHeader>
       <CardContent className="p-4 flex-grow space-y-6">
         <div>
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Script Management</h3>
+          <h3 className="text-xs font-semibold mb-3 flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
             <div key={type} className="mb-3 p-3 border rounded-md bg-background/50">
               <p className="capitalize font-medium mb-2 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1 text-xs">
-                  <Download className="mr-2 h-4 w-4" /> Save {type}
+                  <Download className="mr-2 h-4 w-4" /> Save
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => triggerFileInput(type)} className="flex-1 text-xs">
-                  <Upload className="mr-2 h-4 w-4" /> Load {type}
+                  <Upload className="mr-2 h-4 w-4" /> Load
                 </Button>
                 <input
                   type="file"
