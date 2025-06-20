@@ -1,61 +1,59 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CommandBrowser } from '@/components/powershell-forge/command-browser';
 import { ScriptEditorColumn } from '@/components/powershell-forge/script-editor-column';
 import { ActionsPanel } from '@/components/powershell-forge/actions-panel';
+import { ResizableHandle } from '@/components/powershell-forge/resizable-handle';
 import { mockCommands as initialMockCommands } from '@/data/mock-commands';
 import type { BasePowerShellCommand, ScriptElement, ScriptType, RawScriptLine, ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
 import { PlusSquare, PlaySquare, MinusSquare, TerminalSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateUniqueId } from '@/lib/utils';
 
-// Helper function to stringify ScriptElements for .ps1 export
+const NUM_COLUMNS = 5;
+const MIN_COLUMN_WIDTH_PERCENT = 5; // Minimum 5% width for any column
+const DEFAULT_COLUMN_WIDTHS_PERCENT = Array(NUM_COLUMNS).fill(100 / NUM_COLUMNS); // e.g., [20, 20, 20, 20, 20]
+
 function stringifyScriptElements(elements: ScriptElement[]): string {
   return elements.map(el => {
     if (el.type === 'raw') {
       return el.content;
     }
-    // el.type === 'command' (this now includes comments)
     const commandElement = el as ScriptPowerShellCommand;
 
     if (commandElement.baseCommandId === 'internal-add-comment') {
       const commentText = commandElement.parameterValues['CommentText'] || '';
-      // User input in textarea for multiple lines will have '\n'
       const formattedComment = commentText.split('\n').map(line => `# ${line}`).join('\n');
-      const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false'; // Defaults to true if 'true' or undefined
+      const prependBlankLine = commandElement.parameterValues['_prependBlankLine'] !== 'false';
       return (prependBlankLine ? '\n' : '') + formattedComment;
     }
 
     const paramsString = commandElement.parameters
       .map(param => {
         const value = commandElement.parameterValues[param.name];
-        // Only include parameter if value is not empty or undefined
-        // Basic quoting, PowerShell uses backtick to escape quotes within double-quoted strings
         return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
       })
-      .filter(Boolean) // Remove empty strings
+      .filter(Boolean)
       .join(' ');
     return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
-  }).join('\n'); // Use actual newline character for joining lines
+  }).join('\n');
 }
 
-// Helper function to parse plain text script into ScriptElement[]
 function parseTextToRawScriptLines(text: string): ScriptElement[] {
   if (!text || typeof text !== 'string') return [];
-  return text.split('\n').map(line => { // Split by actual newline character
-    // Basic check if it's a comment, convert to our comment command structure
+  return text.split('\n').map(line => {
     if (line.trim().startsWith('#')) {
       return {
         instanceId: generateUniqueId(),
         type: 'command',
-        name: 'Comment', // Matches the name in mock-commands.ts
+        name: 'Comment',
         baseCommandId: 'internal-add-comment',
-        parameters: [{ name: 'CommentText' }], // Defined in mock-commands.ts
+        parameters: [{ name: 'CommentText' }],
         parameterValues: { 
-          'CommentText': line.trim().substring(1).trim(), // Store text without leading #
-          '_prependBlankLine': 'true' // Default for loaded comments
+          'CommentText': line.trim().substring(1).trim(),
+          '_prependBlankLine': 'true'
         }
       } as ScriptPowerShellCommand;
     }
@@ -75,6 +73,11 @@ export default function PowerShellForgePage() {
   const [addScriptElements, setAddScriptElements] = useState<ScriptElement[]>([]);
   const [launchScriptElements, setLaunchScriptElements] = useState<ScriptElement[]>([]);
   const [removeScriptElements, setRemoveScriptElements] = useState<ScriptElement[]>([]);
+  
+  const [columnWidths, setColumnWidths] = useState<number[]>(DEFAULT_COLUMN_WIDTHS_PERCENT);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
+
 
   const { toast } = useToast();
 
@@ -93,6 +96,24 @@ export default function PowerShellForgePage() {
         setCustomCommands([]);
       }
     }
+     const savedWidths = localStorage.getItem('powershellForge_columnWidths');
+    if (savedWidths) {
+      try {
+        const parsedWidths = JSON.parse(savedWidths) as number[];
+        if (Array.isArray(parsedWidths) && parsedWidths.length === NUM_COLUMNS && parsedWidths.every(w => typeof w === 'number')) {
+          // Basic validation: ensure sum is close to 100
+          const sum = parsedWidths.reduce((acc, w) => acc + w, 0);
+          if (Math.abs(sum - 100) < 1) { // Allow for small floating point inaccuracies
+            setColumnWidths(parsedWidths);
+          } else {
+            console.warn("Loaded column widths do not sum to 100, resetting to default.");
+            localStorage.removeItem('powershellForge_columnWidths'); // Clear invalid data
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse column widths from localStorage", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -104,7 +125,6 @@ export default function PowerShellForgePage() {
           if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type &&
             (el.type === 'raw' || (el.type === 'command' && (el as ScriptPowerShellCommand).baseCommandId))
           )) {
-            // Ensure _prependBlankLine defaults for older saved comment commands
             const processedParsed = parsed.map(el => {
               if (el.type === 'command' && el.baseCommandId === 'internal-add-comment') {
                 const cmdEl = el as ScriptPowerShellCommand;
@@ -116,11 +136,9 @@ export default function PowerShellForgePage() {
             });
             setter(processedParsed);
           } else if (typeof savedData === 'string' && !savedData.startsWith('[')) {
-            // This branch handles old plain text format (deprecated for script elements)
             setter(parseTextToRawScriptLines(savedData));
           }
         } catch (e) {
-          // Fallback for very old plain text data or malformed JSON
           if (typeof savedData === 'string') {
             setter(parseTextToRawScriptLines(savedData));
           }
@@ -146,6 +164,11 @@ export default function PowerShellForgePage() {
   useEffect(() => {
     localStorage.setItem('powershellForge_customCommands', JSON.stringify(customCommands));
   }, [customCommands]);
+  useEffect(() => {
+    if (columnWidths !== DEFAULT_COLUMN_WIDTHS_PERCENT) { // Only save if not default
+        localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths));
+    }
+  }, [columnWidths]);
 
 
   const scriptElementSetters: Record<ScriptType, React.Dispatch<React.SetStateAction<ScriptElement[]>>> = {
@@ -223,7 +246,7 @@ export default function PowerShellForgePage() {
   const handleAddNewCustomCommand = useCallback((commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[] }) => {
     const newCustomCommand: BasePowerShellCommand = {
       ...commandData,
-      id: `custom-${generateUniqueId()}`, // Ensure a unique ID for custom commands
+      id: `custom-${generateUniqueId()}`,
       isCustom: true,
     };
     setCustomCommands(prev => [...prev, newCustomCommand]);
@@ -232,6 +255,103 @@ export default function PowerShellForgePage() {
 
   const allAvailableCommands = useMemo(() => [...mockCommands, ...customCommands], [mockCommands, customCommands]);
 
+  const handleResize = useCallback((handleIndex: number, deltaX: number) => {
+    if (!mainContentRef.current) return;
+    isResizingRef.current = true;
+    document.body.classList.add('select-none', 'cursor-col-resize');
+
+
+    setColumnWidths(prevWidths => {
+      const newWidths = [...prevWidths];
+      const containerWidth = mainContentRef.current!.offsetWidth;
+      if (containerWidth === 0) return prevWidths; // Avoid division by zero
+
+      let deltaPercent = (deltaX / containerWidth) * 100;
+
+      const leftColumnIndex = handleIndex;
+      const rightColumnIndex = handleIndex + 1;
+
+      // Apply delta and check min/max for left column
+      let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
+      if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
+        deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
+        newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+      }
+      
+      // Apply delta and check min/max for right column
+      let newRightWidth = newWidths[rightColumnIndex] - deltaPercent;
+      if (newRightWidth < MIN_COLUMN_WIDTH_PERCENT) {
+        // Adjust deltaPercent based on right column's min width constraint
+        deltaPercent = newWidths[rightColumnIndex] - MIN_COLUMN_WIDTH_PERCENT;
+        newRightWidth = MIN_COLUMN_WIDTH_PERCENT;
+        // Re-calculate left width with the adjusted delta
+        newLeftWidth = newWidths[leftColumnIndex] + deltaPercent; 
+      }
+
+      // Ensure left column also meets min width after potential adjustment for right column
+      if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
+        newRightWidth += (MIN_COLUMN_WIDTH_PERCENT - newLeftWidth);
+        newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+      }
+
+
+      newWidths[leftColumnIndex] = newLeftWidth;
+      newWidths[rightColumnIndex] = newRightWidth;
+
+      // Normalize widths to sum to 100%
+      const currentSum = newWidths.reduce((sum, w) => sum + w, 0);
+      if (Math.abs(currentSum - 100) > 0.01) { // If sum is off
+        const scaleFactor = 100 / currentSum;
+        for (let i = 0; i < newWidths.length; i++) {
+          newWidths[i] *= scaleFactor;
+          // After scaling, re-check min width. This is a simplified normalization.
+          // A more robust solution might distribute deficit/surplus proportionally.
+          if (newWidths[i] < MIN_COLUMN_WIDTH_PERCENT) newWidths[i] = MIN_COLUMN_WIDTH_PERCENT;
+        }
+        // Second pass to ensure sum is 100 after min width adjustments
+        const finalSum = newWidths.reduce((sum, w) => sum + w, 0);
+        if (Math.abs(finalSum - 100) > 0.01) {
+            const finalScaleFactor = 100 / finalSum;
+            for (let i = 0; i < newWidths.length; i++) {
+                newWidths[i] *= finalScaleFactor;
+            }
+        }
+      }
+      return newWidths;
+    });
+  }, []);
+  
+  const handleResizeEnd = useCallback(() => {
+    if (isResizingRef.current) {
+      localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths));
+      isResizingRef.current = false;
+      document.body.classList.remove('select-none', 'cursor-col-resize');
+    }
+  }, [columnWidths]);
+
+
+  const columnsData = [
+    {
+      id: 'command-browser',
+      component: <CommandBrowser mockCommands={mockCommands} customCommands={customCommands} onSaveCustomCommand={handleAddNewCustomCommand} />,
+    },
+    {
+      id: 'add-script',
+      component: <ScriptEditorColumn title="Add" icon={PlusSquare} scriptType="add" scriptElements={addScriptElements} setScriptElements={setAddScriptElements} baseCommands={allAvailableCommands} />,
+    },
+    {
+      id: 'launch-script',
+      component: <ScriptEditorColumn title="Launch" icon={PlaySquare} scriptType="launch" scriptElements={launchScriptElements} setScriptElements={setLaunchScriptElements} baseCommands={allAvailableCommands} />,
+    },
+    {
+      id: 'remove-script',
+      component: <ScriptEditorColumn title="Remove" icon={MinusSquare} scriptType="remove" scriptElements={removeScriptElements} setScriptElements={setRemoveScriptElements} baseCommands={allAvailableCommands} />,
+    },
+    {
+      id: 'actions-panel',
+      component: <ActionsPanel onSaveScript={handleSaveScript} onLoadScript={handleLoadScript} onSaveAllScripts={handleSaveAllScripts} onLoadAllScripts={handleLoadAllScripts} />,
+    },
+  ];
 
   return (
     <div className="flex flex-col h-screen p-4 bg-background gap-4">
@@ -244,53 +364,42 @@ export default function PowerShellForgePage() {
           Create and manage PowerShell scripts for applications.
         </p>
       </header>
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-10 gap-4 overflow-hidden">
-        <div className="md:col-span-2 h-full overflow-y-auto">
-          <CommandBrowser
-            mockCommands={mockCommands}
-            customCommands={customCommands}
-            onSaveCustomCommand={handleAddNewCustomCommand}
-          />
+      <main ref={mainContentRef} className="flex-grow flex flex-col md:flex-row overflow-hidden md:gap-0 gap-4">
+        {/* Mobile stacked layout */}
+        <div className="md:hidden flex flex-col gap-4">
+          {columnsData.map(col => (
+            <div key={col.id} className="h-auto min-h-[300px] max-h-[50vh] md:max-h-full overflow-y-auto">
+              {col.component}
+            </div>
+          ))}
         </div>
-        <div className="md:col-span-2 h-full overflow-y-auto">
-          <ScriptEditorColumn
-            title="Add"
-            icon={PlusSquare}
-            scriptType="add"
-            scriptElements={addScriptElements}
-            setScriptElements={setAddScriptElements}
-            baseCommands={allAvailableCommands}
-          />
-        </div>
-        <div className="md:col-span-2 h-full overflow-y-auto">
-          <ScriptEditorColumn
-            title="Launch"
-            icon={PlaySquare}
-            scriptType="launch"
-            scriptElements={launchScriptElements}
-            setScriptElements={setLaunchScriptElements}
-            baseCommands={allAvailableCommands}
-          />
-        </div>
-        <div className="md:col-span-2 h-full overflow-y-auto">
-          <ScriptEditorColumn
-            title="Remove"
-            icon={MinusSquare}
-            scriptType="remove"
-            scriptElements={removeScriptElements}
-            setScriptElements={setRemoveScriptElements}
-            baseCommands={allAvailableCommands}
-          />
-        </div>
-        <div className="md:col-span-2 h-full overflow-y-auto">
-          <ActionsPanel
-            onSaveScript={handleSaveScript}
-            onLoadScript={handleLoadScript}
-            onSaveAllScripts={handleSaveAllScripts}
-            onLoadAllScripts={handleLoadAllScripts}
-          />
+
+        {/* Desktop resizable layout */}
+        <div className="hidden md:flex flex-row flex-grow w-full">
+          {columnsData.map((col, index) => (
+            <React.Fragment key={col.id}>
+              <div
+                className="h-full overflow-y-auto"
+                style={{
+                  flexGrow: columnWidths[index], // Use flex-grow for responsiveness
+                  flexShrink: 1,
+                  flexBasis: `${columnWidths[index]}%`, // Use flex-basis as the primary width driver
+                  minWidth: `${MIN_COLUMN_WIDTH_PERCENT}%`,
+                }}
+              >
+                {col.component}
+              </div>
+              {index < columnsData.length - 1 && (
+                <ResizableHandle
+                  onResize={(deltaX) => handleResize(index, deltaX)}
+                  onResizeEnd={handleResizeEnd}
+                />
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </main>
     </div>
   );
 }
+
