@@ -14,7 +14,8 @@ import { generateUniqueId } from '@/lib/utils';
 
 const NUM_COLUMNS = 5;
 const MIN_COLUMN_WIDTH_PERCENT = 5; // Minimum 5% width for any column
-const DEFAULT_COLUMN_WIDTHS_PERCENT = Array(NUM_COLUMNS).fill(100 / NUM_COLUMNS); // e.g., [20, 20, 20, 20, 20]
+// Adjusted default widths: Command Browser (25%), Editors (20% each), Actions (15%)
+const DEFAULT_COLUMN_WIDTHS_PERCENT = [25, 20, 20, 20, 15]; 
 
 function stringifyScriptElements(elements: ScriptElement[]): string {
   return elements.map(el => {
@@ -107,12 +108,18 @@ export default function PowerShellForgePage() {
             setColumnWidths(parsedWidths);
           } else {
             console.warn("Loaded column widths do not sum to 100, resetting to default.");
+            setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default
             localStorage.removeItem('powershellForge_columnWidths'); // Clear invalid data
           }
+        } else {
+          setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default if format is wrong
         }
       } catch (e) {
         console.error("Failed to parse column widths from localStorage", e);
+        setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default on error
       }
+    } else {
+       setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Set default if nothing saved
     }
   }, []);
 
@@ -164,9 +171,18 @@ export default function PowerShellForgePage() {
   useEffect(() => {
     localStorage.setItem('powershellForge_customCommands', JSON.stringify(customCommands));
   }, [customCommands]);
+  
+  // Use a separate effect for columnWidths to avoid stringifying default constantly
+  const firstRenderDone = useRef(false);
   useEffect(() => {
-    if (columnWidths !== DEFAULT_COLUMN_WIDTHS_PERCENT) { // Only save if not default
-        localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths));
+    if (firstRenderDone.current) { // Only save after initial load & potential update from localStorage
+        const currentWidthsString = JSON.stringify(columnWidths);
+        const defaultWidthsString = JSON.stringify(DEFAULT_COLUMN_WIDTHS_PERCENT);
+        if (currentWidthsString !== defaultWidthsString) {
+            localStorage.setItem('powershellForge_columnWidths', currentWidthsString);
+        }
+    } else {
+        firstRenderDone.current = true;
     }
   }, [columnWidths]);
 
@@ -323,11 +339,11 @@ export default function PowerShellForgePage() {
   
   const handleResizeEnd = useCallback(() => {
     if (isResizingRef.current) {
-      localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths));
+      // localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths)); // Handled by useEffect
       isResizingRef.current = false;
       document.body.classList.remove('select-none', 'cursor-col-resize');
     }
-  }, [columnWidths]);
+  }, []);
 
 
   const columnsData = [
