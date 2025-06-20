@@ -66,17 +66,17 @@ export function ActionsPanel({
 
   return (
     <Card className="h-full flex flex-col shadow-xl">
-      <CardHeader className="py-3 pl-4 pr-1 border-b"> {/* Changed pr-2 to pr-1 */}
+      <CardHeader className="py-3 pl-4 pr-1 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="pl-2 pt-2 pb-2 pr-0 flex-grow space-y-2"> {/* Changed pr-1 to pr-0 */}
+      <CardContent className="pl-2 pt-2 pb-2 pr-0 flex-grow space-y-2">
         <div>
           <h3 className="text-xs font-semibold mb-1 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
-            <div key={type} className="mb-1 p-1 border rounded-md bg-background/50">
+            <div key={type} className="mb-1 p-1 border rounded-md bg-background/50 inline-block">
               <p className="capitalize font-medium mb-1 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="text-xs">
@@ -97,7 +97,7 @@ export function ActionsPanel({
             </div>
           ))}
           <Separator className="my-1" />
-           <div className="mb-1 p-1 border rounded-md bg-background/50">
+           <div className="mb-1 p-1 border rounded-md bg-background/50 inline-block">
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
