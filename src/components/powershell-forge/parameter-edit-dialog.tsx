@@ -87,8 +87,13 @@ export function ParameterEditDialog({
         if (loopCmd.baseCommandId === 'internal-foreach-loop') {
             initialValues['ItemVariable'] = initialValues['ItemVariable'] || 'item'; // Default to 'item'
             initialValues['InputObject'] = initialValues['InputObject'] || '';
+        } else if (loopCmd.baseCommandId === 'internal-for-loop') {
+            initialValues['Initializer'] = initialValues['Initializer'] || '$i = 0';
+            initialValues['Condition'] = initialValues['Condition'] || '$i -lt 10';
+            initialValues['Iterator'] = initialValues['Iterator'] || '$i++';
+        } else if (loopCmd.baseCommandId === 'internal-while-loop') {
+            initialValues['Condition'] = initialValues['Condition'] || '$true';
         }
-        // Initialize other loop types if needed
       }
       setCurrentParameterValues(initialValues);
       
