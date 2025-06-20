@@ -65,7 +65,7 @@ export function ActionsPanel({
   };
 
   return (
-    <Card className="h-full flex flex-col shadow-xl">
+    <Card className="h-full flex flex-col shadow-xl w-fit">
       <CardHeader className="py-3 pl-4 pr-1 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
@@ -121,3 +121,4 @@ export function ActionsPanel({
     </Card>
   );
 }
+

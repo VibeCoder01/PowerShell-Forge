@@ -108,18 +108,18 @@ export default function PowerShellForgePage() {
             setColumnWidths(parsedWidths);
           } else {
             console.warn("Loaded column widths do not sum to 100, resetting to default.");
-            setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default
-            localStorage.removeItem('powershellForge_columnWidths'); // Clear invalid data
+            setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); 
+            localStorage.removeItem('powershellForge_columnWidths'); 
           }
         } else {
-          setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default if format is wrong
+          setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); 
         }
       } catch (e) {
         console.error("Failed to parse column widths from localStorage", e);
-        setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Use new default on error
+        setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); 
       }
     } else {
-       setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); // Set default if nothing saved
+       setColumnWidths(DEFAULT_COLUMN_WIDTHS_PERCENT); 
     }
   }, []);
 
@@ -172,10 +172,9 @@ export default function PowerShellForgePage() {
     localStorage.setItem('powershellForge_customCommands', JSON.stringify(customCommands));
   }, [customCommands]);
   
-  // Use a separate effect for columnWidths to avoid stringifying default constantly
   const firstRenderDone = useRef(false);
   useEffect(() => {
-    if (firstRenderDone.current) { // Only save after initial load & potential update from localStorage
+    if (firstRenderDone.current) { 
         const currentWidthsString = JSON.stringify(columnWidths);
         const defaultWidthsString = JSON.stringify(DEFAULT_COLUMN_WIDTHS_PERCENT);
         if (currentWidthsString !== defaultWidthsString) {
@@ -280,51 +279,65 @@ export default function PowerShellForgePage() {
     setColumnWidths(prevWidths => {
       const newWidths = [...prevWidths];
       const containerWidth = mainContentRef.current!.offsetWidth;
-      if (containerWidth === 0) return prevWidths; // Avoid division by zero
+      if (containerWidth === 0) return prevWidths; 
 
       let deltaPercent = (deltaX / containerWidth) * 100;
 
       const leftColumnIndex = handleIndex;
       const rightColumnIndex = handleIndex + 1;
 
-      // Apply delta and check min/max for left column
-      let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
-      if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
-        deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
-        newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+      // Do not attempt to resize the last column (ActionsPanel) if it's set to 'auto' width
+      // The resize handle before it will adjust the column to its left.
+      if (rightColumnIndex === newWidths.length -1 && newWidths[rightColumnIndex] === -1) { // -1 can signify 'auto' for internal logic
+        // Apply all delta to the left column if the right one is auto/fixed
+         let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
+         if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
+            deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
+            newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+         }
+         newWidths[leftColumnIndex] = newLeftWidth;
+         // The "auto" column will adjust naturally. We just need to ensure other percentages are okay.
+         const resizableCols = newWidths.slice(0, -1);
+         const currentSumResizable = resizableCols.reduce((sum, w) => sum + w, 0);
+         // This logic might need to be more sophisticated if other columns are also auto or fixed.
+         // For now, assuming only the last one can be special.
+         // If sum is off, it might be due to minWidth constraints, try to re-distribute or cap.
+
+      } else {
+        // Original logic for two percentage-based columns
+        let newLeftWidth = newWidths[leftColumnIndex] + deltaPercent;
+        if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
+          deltaPercent = MIN_COLUMN_WIDTH_PERCENT - newWidths[leftColumnIndex];
+          newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+        }
+        
+        let newRightWidth = newWidths[rightColumnIndex] - deltaPercent;
+        if (newRightWidth < MIN_COLUMN_WIDTH_PERCENT) {
+          deltaPercent = newWidths[rightColumnIndex] - MIN_COLUMN_WIDTH_PERCENT;
+          newRightWidth = MIN_COLUMN_WIDTH_PERCENT;
+          newLeftWidth = newWidths[leftColumnIndex] + deltaPercent; 
+        }
+
+        if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
+          newRightWidth += (MIN_COLUMN_WIDTH_PERCENT - newLeftWidth);
+          newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
+        }
+
+        newWidths[leftColumnIndex] = newLeftWidth;
+        newWidths[rightColumnIndex] = newRightWidth;
       }
-      
-      // Apply delta and check min/max for right column
-      let newRightWidth = newWidths[rightColumnIndex] - deltaPercent;
-      if (newRightWidth < MIN_COLUMN_WIDTH_PERCENT) {
-        // Adjust deltaPercent based on right column's min width constraint
-        deltaPercent = newWidths[rightColumnIndex] - MIN_COLUMN_WIDTH_PERCENT;
-        newRightWidth = MIN_COLUMN_WIDTH_PERCENT;
-        // Re-calculate left width with the adjusted delta
-        newLeftWidth = newWidths[leftColumnIndex] + deltaPercent; 
-      }
-
-      // Ensure left column also meets min width after potential adjustment for right column
-      if (newLeftWidth < MIN_COLUMN_WIDTH_PERCENT) {
-        newRightWidth += (MIN_COLUMN_WIDTH_PERCENT - newLeftWidth);
-        newLeftWidth = MIN_COLUMN_WIDTH_PERCENT;
-      }
 
 
-      newWidths[leftColumnIndex] = newLeftWidth;
-      newWidths[rightColumnIndex] = newRightWidth;
+      // Normalize widths to sum to 100% for percentage-based columns
+      const percentageColumns = newWidths.filter((w, i) => i < newWidths.length -1 || (i === newWidths.length -1 && w !== -1) ); // Exclude 'auto' from sum if marked as -1
+      const currentSum = percentageColumns.reduce((sum, w) => sum + w, 0);
 
-      // Normalize widths to sum to 100%
-      const currentSum = newWidths.reduce((sum, w) => sum + w, 0);
-      if (Math.abs(currentSum - 100) > 0.01) { // If sum is off
+      if (Math.abs(currentSum - 100) > 0.01 && percentageColumns.length === newWidths.length) { // Only normalize if all are percentage
         const scaleFactor = 100 / currentSum;
         for (let i = 0; i < newWidths.length; i++) {
           newWidths[i] *= scaleFactor;
-          // After scaling, re-check min width. This is a simplified normalization.
-          // A more robust solution might distribute deficit/surplus proportionally.
           if (newWidths[i] < MIN_COLUMN_WIDTH_PERCENT) newWidths[i] = MIN_COLUMN_WIDTH_PERCENT;
         }
-        // Second pass to ensure sum is 100 after min width adjustments
         const finalSum = newWidths.reduce((sum, w) => sum + w, 0);
         if (Math.abs(finalSum - 100) > 0.01) {
             const finalScaleFactor = 100 / finalSum;
@@ -339,7 +352,6 @@ export default function PowerShellForgePage() {
   
   const handleResizeEnd = useCallback(() => {
     if (isResizingRef.current) {
-      // localStorage.setItem('powershellForge_columnWidths', JSON.stringify(columnWidths)); // Handled by useEffect
       isResizingRef.current = false;
       document.body.classList.remove('select-none', 'cursor-col-resize');
     }
@@ -381,7 +393,6 @@ export default function PowerShellForgePage() {
         </p>
       </header>
       <main ref={mainContentRef} className="flex-grow flex flex-col md:flex-row overflow-hidden md:gap-0 gap-4">
-        {/* Mobile stacked layout */}
         <div className="md:hidden flex flex-col gap-4">
           {columnsData.map(col => (
             <div key={col.id} className="h-auto min-h-[300px] max-h-[50vh] md:max-h-full overflow-y-auto">
@@ -390,29 +401,40 @@ export default function PowerShellForgePage() {
           ))}
         </div>
 
-        {/* Desktop resizable layout */}
         <div className="hidden md:flex flex-row flex-grow w-full">
-          {columnsData.map((col, index) => (
-            <React.Fragment key={col.id}>
-              <div
-                className="h-full overflow-y-auto"
-                style={{
-                  flexGrow: columnWidths[index], // Use flex-grow for responsiveness
+          {columnsData.map((col, index) => {
+            const isLastColumn = index === columnsData.length - 1;
+            const columnStyle: React.CSSProperties = isLastColumn
+              ? { // Actions Panel - shrinks to content
+                  flexGrow: 0,
+                  flexShrink: 0, 
+                  flexBasis: 'auto',
+                  overflowX: 'auto', // Handle potential overflow if content is wider than viewport allows
+                }
+              : { // Other resizable columns
+                  flexGrow: columnWidths[index], 
                   flexShrink: 1,
-                  flexBasis: `${columnWidths[index]}%`, // Use flex-basis as the primary width driver
+                  flexBasis: `${columnWidths[index]}%`, 
                   minWidth: `${MIN_COLUMN_WIDTH_PERCENT}%`,
-                }}
-              >
-                {col.component}
-              </div>
-              {index < columnsData.length - 1 && (
-                <ResizableHandle
-                  onResize={(deltaX) => handleResize(index, deltaX)}
-                  onResizeEnd={handleResizeEnd}
-                />
-              )}
-            </React.Fragment>
-          ))}
+                };
+            
+            return (
+              <React.Fragment key={col.id}>
+                <div
+                  className="h-full overflow-y-auto"
+                  style={columnStyle}
+                >
+                  {col.component}
+                </div>
+                {index < columnsData.length - 1 && ( // Add resizer for all but the very last column
+                  <ResizableHandle
+                    onResize={(deltaX) => handleResize(index, deltaX)}
+                    onResizeEnd={handleResizeEnd}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </main>
     </div>
