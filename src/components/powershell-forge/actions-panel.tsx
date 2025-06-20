@@ -76,7 +76,7 @@ export function ActionsPanel({
         <div>
           <h3 className="text-xs font-semibold mb-1 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
-            <div key={type} className="mb-1 p-1 border rounded-md bg-card/50">
+            <div key={type} className="mb-1 p-1 border rounded-md bg-primary/10">
               <p className="capitalize font-medium mb-1 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="text-xs">
