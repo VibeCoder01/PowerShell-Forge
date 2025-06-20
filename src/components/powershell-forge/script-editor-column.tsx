@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { LucideIcon } from 'lucide-react';
-import { Trash2, GripVertical } from 'lucide-react'; // Added GripVertical
-import { ParameterEditDialog } from './parameter-edit-dialog'; 
-import { ScriptCommandChip } from './script-command-chip'; 
+import { Trash2, GripVertical } from 'lucide-react';
+import { ParameterEditDialog } from './parameter-edit-dialog';
+import { ScriptCommandChip } from './script-command-chip';
 import { generateUniqueId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +20,7 @@ interface ScriptEditorColumnProps {
   scriptType: ScriptType;
   scriptElements: ScriptElement[];
   setScriptElements: (elements: ScriptElement[] | ((prevElements: ScriptElement[]) => ScriptElement[])) => void;
-  baseCommands: BasePowerShellCommand[]; 
+  baseCommands: BasePowerShellCommand[];
 }
 
 export function ScriptEditorColumn({
@@ -33,184 +33,260 @@ export function ScriptEditorColumn({
 }: ScriptEditorColumnProps) {
   const [isDraggingOverColumn, setIsDraggingOverColumn] = useState(false);
   const { toast } = useToast();
-  
+
   const [editingCommand, setEditingCommand] = useState<ScriptPowerShellCommand | null>(null);
   const [showParameterDialog, setShowParameterDialog] = useState(false);
 
-  // State for internal drag-and-drop reordering
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dropTargetInfo, setDropTargetInfo] = useState<{ targetId: string; position: 'before' | 'after' } | null>(null);
   const [isDraggingOverItem, setIsDraggingOverItem] = useState<string | null>(null);
   const [dragOperationType, setDragOperationType] = useState<'copy' | 'move' | null>(null);
 
 
-  const handleDragStartNewCommand = (e: React.DragEvent<HTMLDivElement>) => {
-    // This handler is for when dragging a NEW command from the browser
-    // For reordering existing items, a different handler will be used
-  };
-  
   const handleDragStartReorder = (e: React.DragEvent<HTMLDivElement>, instanceId: string) => {
+    const element = scriptElements.find(el => el.instanceId === instanceId);
+    if (element) {
+      e.dataTransfer.setData('application/json', JSON.stringify(element)); // For copying to other columns
+    }
     e.dataTransfer.setData('text/x-powershell-forge-reorder-item', instanceId);
     e.dataTransfer.setData('text/x-powershell-forge-reorder-source-type', scriptType);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'copyMove'; // Allow both copy (to other columns) and move (within this column)
     setDraggingItemId(instanceId);
   };
 
   const handleDragOverReorderTarget = (e: React.DragEvent<HTMLDivElement>, targetInstanceId: string) => {
     e.preventDefault();
-    if (draggingItemId && draggingItemId !== targetInstanceId) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const isTopHalf = e.clientY < rect.top + rect.height / 2;
-      setDropTargetInfo({ targetId: targetInstanceId, position: isTopHalf ? 'before' : 'after' });
-      e.dataTransfer.dropEffect = 'move';
-      setIsDraggingOverItem(targetInstanceId);
-    }
-  };
-  
-  const handleDragLeaveReorderTarget = (e: React.DragEvent<HTMLDivElement>) => {
-    // Check if the mouse is truly leaving the element boundaries, not just moving to a child
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-        if (dropTargetInfo && dropTargetInfo.targetId === (e.currentTarget.dataset.instanceId || isDraggingOverItem)) {
-             setDropTargetInfo(null);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isTopHalf = e.clientY < rect.top + rect.height / 2;
+    const position = isTopHalf ? 'before' : 'after';
+
+    let currentDropEffect: 'copy' | 'move' = 'move'; // Default for reorder target
+    
+    if (draggingItemId) { // Item from a script column is being dragged
+        const tempSourceType = e.dataTransfer.getData('text/x-powershell-forge-reorder-source-type') as ScriptType;
+        if (tempSourceType && tempSourceType !== scriptType) {
+            currentDropEffect = 'copy';
+        } else {
+            currentDropEffect = 'move';
         }
-        setIsDraggingOverItem(null);
+    } else if (e.dataTransfer.types.includes('application/json')) { // New item from command browser
+        currentDropEffect = 'copy';
+    }
+    
+    e.dataTransfer.dropEffect = currentDropEffect;
+    setDragOperationType(currentDropEffect);
+    setDropTargetInfo({ targetId: targetInstanceId, position });
+    setIsDraggingOverItem(targetInstanceId);
+  };
+
+  const handleDragLeaveReorderTarget = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      if (dropTargetInfo && dropTargetInfo.targetId === (e.currentTarget.dataset.instanceId || isDraggingOverItem)) {
+        setDropTargetInfo(null);
+      }
+      setIsDraggingOverItem(null);
+      // Don't reset dragOperationType here, it's for the column
     }
   };
 
   const handleDropOnItem = (e: React.DragEvent<HTMLDivElement>, targetInstanceId: string) => {
     e.preventDefault();
-    e.stopPropagation(); // Important: stop propagation to prevent CardContent's onDrop
-    
+    e.stopPropagation();
+
     const sourceInstanceId = e.dataTransfer.getData('text/x-powershell-forge-reorder-item');
     const sourceScriptType = e.dataTransfer.getData('text/x-powershell-forge-reorder-source-type') as ScriptType;
+    const draggedElementJson = e.dataTransfer.getData('application/json');
 
-    if (sourceInstanceId && sourceScriptType === scriptType && dropTargetInfo && dropTargetInfo.targetId === targetInstanceId) {
-      // Reordering within the same column
-      const sourceIndex = scriptElements.findIndex(el => el.instanceId === sourceInstanceId);
-      let targetElementIndex = scriptElements.findIndex(el => el.instanceId === targetInstanceId);
+    if (sourceInstanceId && sourceScriptType && draggedElementJson) { // Item dragged from a script column
+        if (sourceScriptType === scriptType && dropTargetInfo && dropTargetInfo.targetId === targetInstanceId) {
+            // Reordering within the same column
+            const sourceIndex = scriptElements.findIndex(el => el.instanceId === sourceInstanceId);
+            let targetElementIndex = scriptElements.findIndex(el => el.instanceId === targetInstanceId);
 
-      if (sourceIndex === -1 || targetElementIndex === -1 || sourceInstanceId === targetInstanceId) {
-        setDraggingItemId(null);
-        setDropTargetInfo(null);
-        setIsDraggingOverItem(null);
-        return;
-      }
-      
-      const newElements = [...scriptElements];
-      const [draggedElement] = newElements.splice(sourceIndex, 1);
-      
-      // Adjust target index because splice shifted elements if source was before target
-      if (sourceIndex < targetElementIndex) {
-        targetElementIndex--;
-      }
-
-      if (dropTargetInfo.position === 'before') {
-        newElements.splice(targetElementIndex, 0, draggedElement);
-      } else { // 'after'
-        newElements.splice(targetElementIndex + 1, 0, draggedElement);
-      }
-      setScriptElements(newElements);
+            if (sourceIndex === -1 || targetElementIndex === -1 || sourceInstanceId === targetInstanceId) {
+              // Reset and return if invalid state
+            } else {
+                const newElements = [...scriptElements];
+                const [draggedElement] = newElements.splice(sourceIndex, 1);
+                if (sourceIndex < targetElementIndex) {
+                  targetElementIndex--;
+                }
+                if (dropTargetInfo.position === 'before') {
+                  newElements.splice(targetElementIndex, 0, draggedElement);
+                } else {
+                  newElements.splice(targetElementIndex + 1, 0, draggedElement);
+                }
+                setScriptElements(newElements);
+            }
+        } else if (sourceScriptType !== scriptType && dropTargetInfo && dropTargetInfo.targetId === targetInstanceId) {
+            // Copying from another column and dropping relative to an item in this column
+            try {
+                const originalElement = JSON.parse(draggedElementJson) as ScriptElement;
+                const newCopiedElement: ScriptElement = {
+                    ...originalElement,
+                    instanceId: generateUniqueId(),
+                };
+                let targetElementIndex = scriptElements.findIndex(el => el.instanceId === targetInstanceId);
+                 const newElements = [...scriptElements];
+                if (dropTargetInfo.position === 'before') {
+                    newElements.splice(targetElementIndex, 0, newCopiedElement);
+                } else { 
+                    newElements.splice(targetElementIndex + 1, 0, newCopiedElement);
+                }
+                setScriptElements(newElements);
+                toast({
+                    title: 'Element Copied',
+                    description: `${(newCopiedElement as ScriptPowerShellCommand).name || 'Element'} copied to ${title} script.`,
+                });
+            } catch (error) {
+                console.error('Failed to parse dropped JSON for copy onto item:', error);
+                toast({ variant: 'destructive', title: 'Copy Error', description: 'Could not copy the element.' });
+            }
+        }
+    } else if (!sourceInstanceId && draggedElementJson && dropTargetInfo && dropTargetInfo.targetId === targetInstanceId) {
+        // New command from Command Browser dropped onto an existing item (to insert before/after)
+        try {
+            const baseCommand = JSON.parse(draggedElementJson) as BasePowerShellCommand;
+            let initialParameterValues = baseCommand.parameters.reduce((acc, param) => { acc[param.name] = ''; return acc; }, {} as { [key: string]: string });
+            if (baseCommand.id === 'internal-add-comment') {
+                initialParameterValues['CommentText'] = 'Your comment here';
+                initialParameterValues['_prependBlankLine'] = 'true';
+            }
+            const newScriptCommand: ScriptPowerShellCommand = {
+                instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
+                parameters: baseCommand.parameters, parameterValues: initialParameterValues, baseCommandId: baseCommand.id,
+            };
+            let targetElementIndex = scriptElements.findIndex(el => el.instanceId === targetInstanceId);
+            const newElements = [...scriptElements];
+            if (dropTargetInfo.position === 'before') {
+                newElements.splice(targetElementIndex, 0, newScriptCommand);
+            } else {
+                newElements.splice(targetElementIndex + 1, 0, newScriptCommand);
+            }
+            setScriptElements(newElements);
+            toast({
+                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : 'Command Added',
+                description: `${baseCommand.name} added to ${title} script. Click to edit.`,
+            });
+        } catch (error) {
+             console.error('Failed to parse dropped data for new command (on item):', error);
+             toast({ variant: 'destructive', title: 'Drop Error', description: 'Could not add element.'});
+        }
     }
 
     setDraggingItemId(null);
     setDropTargetInfo(null);
     setIsDraggingOverItem(null);
+    setDragOperationType(null);
   };
-
 
   const handleDragEndReorder = () => {
     setDraggingItemId(null);
     setDropTargetInfo(null);
     setIsDraggingOverItem(null);
+    setDragOperationType(null);
   };
-
 
   const handleDropOnColumnContent = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDraggingOverColumn(false);
-    setDragOperationType(null);
-    setIsDraggingOverItem(null); // Clear item-specific highlight
-
     const reorderSourceId = e.dataTransfer.getData('text/x-powershell-forge-reorder-item');
     const reorderSourceType = e.dataTransfer.getData('text/x-powershell-forge-reorder-source-type') as ScriptType;
+    const draggedElementJson = e.dataTransfer.getData('application/json');
 
-    if (reorderSourceId && reorderSourceType === scriptType) {
-      // Item dropped onto the main column area (e.g., to move to the end)
-      const sourceIndex = scriptElements.findIndex(el => el.instanceId === reorderSourceId);
-      if (sourceIndex !== -1) {
-        const newElements = [...scriptElements];
-        const [draggedElement] = newElements.splice(sourceIndex, 1);
-        newElements.push(draggedElement);
-        setScriptElements(newElements);
-        toast({ title: 'Item Moved', description: 'Item moved to the end of the script.' });
-      }
-    } else if (e.dataTransfer.types.includes('application/json') && !reorderSourceId) {
-      // New command dropped from Command Browser
-      try {
-        const commandJson = e.dataTransfer.getData('application/json');
-        if (!commandJson) return;
-        const baseCommand = JSON.parse(commandJson) as BasePowerShellCommand;
-
-        let initialParameterValues = baseCommand.parameters.reduce((acc, param) => {
-          acc[param.name] = ''; 
-          return acc;
-        }, {} as { [key: string]: string });
-
-        if (baseCommand.id === 'internal-add-comment') {
-          initialParameterValues['CommentText'] = 'Your comment here';
-          initialParameterValues['_prependBlankLine'] = 'true';
+    if (reorderSourceId && reorderSourceType && draggedElementJson) { // Item dragged from a script column
+        if (reorderSourceType === scriptType) { // Reordering within the same column (to the end)
+            const sourceIndex = scriptElements.findIndex(el => el.instanceId === reorderSourceId);
+            if (sourceIndex !== -1) {
+                const newElements = [...scriptElements];
+                const [draggedElementItem] = newElements.splice(sourceIndex, 1);
+                newElements.push(draggedElementItem);
+                setScriptElements(newElements);
+                toast({ title: 'Item Moved', description: 'Item moved to the end of the script.' });
+            }
+        } else { // Copying from another column to the end of this column
+            try {
+                const originalElement = JSON.parse(draggedElementJson) as ScriptElement;
+                const newCopiedElement: ScriptElement = {
+                    ...originalElement,
+                    instanceId: generateUniqueId(), 
+                };
+                setScriptElements(prev => [...prev, newCopiedElement]);
+                toast({
+                    title: 'Element Copied',
+                    description: `${(newCopiedElement as ScriptPowerShellCommand).name || 'Element'} copied to ${title} script.`,
+                });
+            } catch (error) {
+                console.error('Failed to parse dropped JSON for copy to column end:', error);
+                toast({ variant: 'destructive', title: 'Copy Error', description: 'Could not copy the element.' });
+            }
         }
-        
-        const newScriptCommand: ScriptPowerShellCommand = {
-          instanceId: generateUniqueId(),
-          type: 'command',
-          name: baseCommand.name,
-          parameters: baseCommand.parameters, 
-          parameterValues: initialParameterValues,
-          baseCommandId: baseCommand.id,
-        };
-
-        setScriptElements(prev => [...prev, newScriptCommand]);
-        toast({
-          title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : 'Command Added',
-          description: `${baseCommand.name} added to ${title} script. Click to edit.`,
-        });
-
-      } catch (error) {
-        console.error('Failed to parse dropped data for new command:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Drop Error',
-          description: 'Could not add the command/comment. Invalid data.',
-        });
-      }
+    } else if (draggedElementJson) { // New command dropped from Command Browser
+        try {
+            const baseCommand = JSON.parse(draggedElementJson) as BasePowerShellCommand;
+            let initialParameterValues = baseCommand.parameters.reduce((acc, param) => { acc[param.name] = ''; return acc; }, {} as { [key: string]: string });
+            if (baseCommand.id === 'internal-add-comment') {
+                initialParameterValues['CommentText'] = 'Your comment here';
+                initialParameterValues['_prependBlankLine'] = 'true';
+            }
+            const newScriptCommand: ScriptPowerShellCommand = {
+                instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
+                parameters: baseCommand.parameters, parameterValues: initialParameterValues, baseCommandId: baseCommand.id,
+            };
+            setScriptElements(prev => [...prev, newScriptCommand]);
+            toast({
+                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : 'Command Added',
+                description: `${baseCommand.name} added to ${title} script. Click to edit.`,
+            });
+        } catch (error) {
+            console.error('Failed to parse dropped data for new command (on column):', error);
+            toast({ variant: 'destructive', title: 'Drop Error', description: 'Could not add element.'});
+        }
     }
-    
+
+    setIsDraggingOverColumn(false);
+    setDragOperationType(null);
     setDraggingItemId(null);
     setDropTargetInfo(null);
+    setIsDraggingOverItem(null);
   };
 
   const handleDragOverColumnContent = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const isReorderOp = e.dataTransfer.types.includes('text/x-powershell-forge-reorder-item');
-    const isNewCommandOp = e.dataTransfer.types.includes('application/json');
-    
-    let effectiveDropEffect: 'copy' | 'move' | 'none' = 'none';
+    const isReorderItemDragged = e.dataTransfer.types.includes('text/x-powershell-forge-reorder-item');
+    const isNewCommandDragged = e.dataTransfer.types.includes('application/json') && !isReorderItemDragged;
 
-    if (isReorderOp) {
-      effectiveDropEffect = 'move';
-    } else if (isNewCommandOp) {
-      effectiveDropEffect = 'copy';
+    let currentOperation: 'copy' | 'move' | null = null;
+
+    if (isNewCommandDragged) {
+        e.dataTransfer.dropEffect = 'copy';
+        currentOperation = 'copy';
+    } else if (isReorderItemDragged) {
+        const tempSourceType = e.dataTransfer.getData('text/x-powershell-forge-reorder-source-type') as ScriptType;
+        if (tempSourceType && tempSourceType !== scriptType) {
+            e.dataTransfer.dropEffect = 'copy';
+            currentOperation = 'copy';
+        } else if (tempSourceType && tempSourceType === scriptType) {
+            e.dataTransfer.dropEffect = 'move';
+            currentOperation = 'move';
+        } else { // Fallback if tempSourceType is not readable during dragOver
+             if (e.dataTransfer.effectAllowed.includes('copy')) currentOperation = 'copy';
+             else if (e.dataTransfer.effectAllowed.includes('move')) currentOperation = 'move';
+             e.dataTransfer.dropEffect = currentOperation || 'none';
+        }
+    } else {
+        e.dataTransfer.dropEffect = 'none';
     }
     
-    e.dataTransfer.dropEffect = effectiveDropEffect;
-    setDragOperationType(effectiveDropEffect !== 'none' ? effectiveDropEffect : null);
-    setIsDraggingOverColumn(effectiveDropEffect !== 'none');
+    setDragOperationType(currentOperation);
+    setIsDraggingOverColumn(currentOperation !== null);
 
-    if (effectiveDropEffect === 'move' && !isDraggingOverItem) {
-      setDropTargetInfo({ targetId: 'column-end', position: 'after' }); 
-    } else if (effectiveDropEffect === 'copy') {
-      setDropTargetInfo(null); 
+    if (currentOperation === 'move' && !isDraggingOverItem) {
+        setDropTargetInfo({ targetId: 'column-end', position: 'after' });
+    } else if (currentOperation === 'copy' && !isDraggingOverItem) {
+        // For copy to column end, no specific item target, just highlight column
+        setDropTargetInfo(null); // No specific item target for copy to column end
+    } else if (!isDraggingOverItem) {
+        setDropTargetInfo(null);
     }
   };
 
@@ -224,10 +300,8 @@ export function ScriptEditorColumn({
     }
   };
 
-
   const handleEditCommand = (command: ScriptPowerShellCommand) => {
     const fullBaseCommand = baseCommands.find(bc => bc.id === command.baseCommandId);
-
     if (fullBaseCommand) {
         const commandToEdit = { ...command };
         if (commandToEdit.baseCommandId === 'internal-add-comment' && commandToEdit.parameterValues['_prependBlankLine'] === undefined) {
@@ -237,16 +311,14 @@ export function ScriptEditorColumn({
         setShowParameterDialog(true);
     } else {
         toast({ variant: 'destructive', title: 'Error', description: `Base command definition for "${command.name}" not found.` });
-        // Fallback: edit with potentially incomplete parameter definitions
-        setEditingCommand(command); 
+        setEditingCommand(command);
         setShowParameterDialog(true);
     }
   };
-  
 
   const handleSaveEditedCommand = (updatedCommand: ScriptPowerShellCommand) => {
-    setScriptElements(prevElements => 
-      prevElements.map(el => 
+    setScriptElements(prevElements =>
+      prevElements.map(el =>
         el.instanceId === updatedCommand.instanceId ? updatedCommand : el
       )
     );
@@ -261,10 +333,10 @@ export function ScriptEditorColumn({
   };
 
   return (
-    <Card 
+    <Card
       className={cn(
         'h-full flex flex-col shadow-xl transition-all duration-200',
-        isDraggingOverColumn ? 'ring-2 ring-primary ring-offset-2' : ''
+        isDraggingOverColumn ? `ring-2 ${dragOperationType === 'copy' ? 'ring-accent' :  'ring-primary'} ring-offset-2` : ''
       )}
       aria-dropeffect={dragOperationType ?? 'none'}
     >
@@ -274,7 +346,7 @@ export function ScriptEditorColumn({
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent 
+      <CardContent
         className="p-0 flex-grow flex flex-col relative"
         onDrop={handleDropOnColumnContent}
         onDragOver={handleDragOverColumnContent}
@@ -285,9 +357,9 @@ export function ScriptEditorColumn({
             {scriptElements.length === 0 && !isDraggingOverColumn && (
               <p className="text-muted-foreground text-center py-10">Drag commands or comments here...</p>
             )}
-             {scriptElements.length === 0 && isDraggingOverColumn && dragOperationType === 'move' && (
+            {scriptElements.length === 0 && isDraggingOverColumn && (
               <div className="h-full flex items-center justify-center">
-                <div className="h-1 w-full bg-accent my-1"></div>
+                <div className={`h-1 w-full ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} my-1 animate-pulse`}></div>
               </div>
             )}
 
@@ -298,9 +370,9 @@ export function ScriptEditorColumn({
               return (
                 <React.Fragment key={element.instanceId}>
                   {isCurrentDropTarget && dropTargetInfo.position === 'before' && (
-                    <div className="h-1.5 bg-accent rounded-full my-0.5 mx-2 animate-pulse"></div>
+                    <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>
                   )}
-                  <div 
+                  <div
                     data-instance-id={element.instanceId}
                     draggable={true}
                     onDragStart={(e) => handleDragStartReorder(e, element.instanceId)}
@@ -325,19 +397,16 @@ export function ScriptEditorColumn({
                           const cmdElement = element as ScriptPowerShellCommand;
                           let hasUnsetParameters = false;
                           if (cmdElement.baseCommandId !== 'internal-add-comment') {
-                            // A command has unset parameters if it has defined parameters,
-                            // and all of its parameterValues (excluding internal ones like _prependBlankLine) are empty strings.
                             const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
                             const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
-                                                        .filter(([key]) => !key.startsWith('_')) // Exclude internal/faux params
+                                                        .filter(([key]) => !key.startsWith('_'))
                                                         .every(([,val]) => val === '');
                             if (hasDefinedParams && allValuesAreEmpty) {
                               hasUnsetParameters = true;
                             }
-                          } else { // This is a comment object
-                             // A comment is considered "unset" if its text is empty or the placeholder
+                          } else {
                              if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
-                                hasUnsetParameters = true; 
+                                hasUnsetParameters = true;
                              }
                           }
                           return (
@@ -350,9 +419,9 @@ export function ScriptEditorColumn({
                         })()
                       )}
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="ml-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity absolute right-1 top-1/2 -translate-y-1/2 bg-card hover:bg-destructive/20"
                       onClick={() => handleRemoveElement(element.instanceId)}
                       aria-label="Remove script element"
@@ -361,13 +430,13 @@ export function ScriptEditorColumn({
                     </Button>
                   </div>
                   {isCurrentDropTarget && dropTargetInfo.position === 'after' && (
-                    <div className="h-1.5 bg-accent rounded-full my-0.5 mx-2 animate-pulse"></div>
+                     <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>
                   )}
                 </React.Fragment>
               );
             })}
             {dropTargetInfo && dropTargetInfo.targetId === 'column-end' && scriptElements.length > 0 && (
-                 <div className="h-1.5 bg-accent rounded-full my-0.5 mx-2 animate-pulse"></div>
+                 <div className={`h-1.5 ${dragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>
             )}
           </div>
         </ScrollArea>
@@ -377,7 +446,7 @@ export function ScriptEditorColumn({
       </CardFooter>
       {editingCommand && (
         <ParameterEditDialog
-          key={editingCommand.instanceId} 
+          key={editingCommand.instanceId}
           isOpen={showParameterDialog}
           onOpenChange={setShowParameterDialog}
           command={editingCommand}
@@ -387,4 +456,3 @@ export function ScriptEditorColumn({
     </Card>
   );
 }
-
