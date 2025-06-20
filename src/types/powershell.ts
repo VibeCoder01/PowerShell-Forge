@@ -45,4 +45,3 @@ export interface LoopScriptElement {
 export type ScriptElement = ScriptPowerShellCommand | RawScriptLine | LoopScriptElement;
 
 export type ScriptType = 'add' | 'launch' | 'remove';
-

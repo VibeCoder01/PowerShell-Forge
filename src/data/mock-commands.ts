@@ -1913,4 +1913,3 @@ export const mockCommands: BasePowerShellCommand[] = [
 
 // This list might be needed in ParameterEditDialog as well, ensure it's consistent or imported.
 export const COMMON_PARAMETERS_LIST_FOR_DIALOG: { name: string }[] = COMMON_POWERHSHELL_PARAMETERS.map(name => ({name}));
-

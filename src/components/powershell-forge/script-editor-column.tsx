@@ -578,4 +578,3 @@ export function ScriptEditorColumn({
     </Card>
   );
 }
-

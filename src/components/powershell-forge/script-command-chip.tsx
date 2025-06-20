@@ -74,19 +74,23 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
     const loopElement = command as LoopScriptElement;
     let Icon = Repeat;
     if (loopElement.baseCommandId === 'internal-for-loop') Icon = IterationCcw;
-    if (loopElement.baseCommandId === 'internal-while-loop') Icon = ListTree; // Using ListTree as a placeholder for While
+    if (loopElement.baseCommandId === 'internal-while-loop') Icon = ListTree; 
 
-    // Check for unset parameters in loop constructs (simplified check)
-    const loopHasUnsetParams = Object.entries(loopElement.parameterValues)
-      .filter(([key]) => loopElement.parameters.some(p => p.name === key)) // Only check defined parameters
-      .some(([,val]) => val === '');
+    // Check for unset parameters in loop constructs
+    const loopHasUnsetParams = loopElement.parameters.some(paramDef => {
+      const value = loopElement.parameterValues[paramDef.name];
+      // Consider a parameter unset if it's essential and empty.
+      // For simplicity, we'll check if any defined parameter has an empty string value.
+      // You might want more specific checks (e.g. InputObject for ForEach is critical)
+      return value === ''; 
+    });
     
     return (
       <Button
         variant="outline"
         className={cn(
           "flex-grow h-auto py-2 px-3 text-left justify-start items-start flex-col shadow-md hover:shadow-lg w-full",
-          "border-blue-500 hover:border-blue-600 bg-blue-500/10" // Distinct styling for loop container
+          "border-blue-500 hover:border-blue-600 bg-blue-500/10" 
         )}
         onClick={onClick}
         aria-label={`Edit loop: ${loopElement.name}${loopHasUnsetParams ? '. This loop has unset parameters.' : ''}`}
@@ -100,7 +104,6 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
         </div>
         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1">
            {Object.entries(loopElement.parameterValues).map(([key, value]) => {
-            // Only display parameters that have a value and are defined for the loop
             if (value && loopElement.parameters.some(p => p.name === key)) {
               return (
                 <Badge variant="secondary" key={key} className="font-normal text-xs">
@@ -118,7 +121,7 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
       </Button>
     );
 
-  } else if (command.type === 'command') { // Original rendering for other commands
+  } else if (command.type === 'command') { 
     const regularCommand = command as ScriptPowerShellCommand;
     return (
       <Button
@@ -158,6 +161,5 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
       </Button>
     );
   }
-  return null; // Should not happen
+  return null; 
 }
-
