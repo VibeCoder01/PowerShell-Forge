@@ -151,6 +151,8 @@ export function ScriptEditorColumn({
             if (baseCommand.id === 'internal-add-comment') {
                 initialParameterValues['CommentText'] = 'Your comment here';
                 initialParameterValues['_prependBlankLine'] = 'true';
+            } else if (baseCommand.id === 'internal-user-prompt') {
+                initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
             }
             const newScriptCommand: ScriptPowerShellCommand = {
                 instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
@@ -165,7 +167,7 @@ export function ScriptEditorColumn({
             }
             setScriptElements(newElements);
             toast({
-                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : 'Command Added',
+                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : (baseCommand.id === 'internal-user-prompt' ? 'User Prompt Added' : 'Command Added'),
                 description: `${baseCommand.name} added to ${title} script. Click to edit.`,
             });
         } catch (error) {
@@ -227,6 +229,8 @@ export function ScriptEditorColumn({
             if (baseCommand.id === 'internal-add-comment') {
                 initialParameterValues['CommentText'] = 'Your comment here';
                 initialParameterValues['_prependBlankLine'] = 'true';
+            } else if (baseCommand.id === 'internal-user-prompt') {
+                initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
             }
             const newScriptCommand: ScriptPowerShellCommand = {
                 instanceId: generateUniqueId(), type: 'command', name: baseCommand.name,
@@ -234,7 +238,7 @@ export function ScriptEditorColumn({
             };
             setScriptElements(prev => [...prev, newScriptCommand]);
             toast({
-                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : 'Command Added',
+                title: baseCommand.id === 'internal-add-comment' ? 'Comment Added' : (baseCommand.id === 'internal-user-prompt' ? 'User Prompt Added' : 'Command Added'),
                 description: `${baseCommand.name} added to ${title} script. Click to edit.`,
             });
         } catch (error) {
@@ -268,7 +272,7 @@ export function ScriptEditorColumn({
         } else if (tempSourceType && tempSourceType === scriptType) {
             e.dataTransfer.dropEffect = 'move';
             currentOperation = 'move';
-        } else { // Fallback if tempSourceType is not readable during dragOver
+        } else { 
              if (e.dataTransfer.effectAllowed.includes('copy')) currentOperation = 'copy';
              else if (e.dataTransfer.effectAllowed.includes('move')) currentOperation = 'move';
              e.dataTransfer.dropEffect = currentOperation || 'none';
@@ -283,8 +287,7 @@ export function ScriptEditorColumn({
     if (currentOperation === 'move' && !isDraggingOverItem) {
         setDropTargetInfo({ targetId: 'column-end', position: 'after' });
     } else if (currentOperation === 'copy' && !isDraggingOverItem) {
-        // For copy to column end, no specific item target, just highlight column
-        setDropTargetInfo(null); // No specific item target for copy to column end
+        setDropTargetInfo(null); 
     } else if (!isDraggingOverItem) {
         setDropTargetInfo(null);
     }
@@ -307,11 +310,14 @@ export function ScriptEditorColumn({
         if (commandToEdit.baseCommandId === 'internal-add-comment' && commandToEdit.parameterValues['_prependBlankLine'] === undefined) {
             commandToEdit.parameterValues = { ...commandToEdit.parameterValues, '_prependBlankLine': 'true' };
         }
+        if (commandToEdit.baseCommandId === 'internal-user-prompt' && commandToEdit.parameterValues['PromptText'] === undefined) {
+             commandToEdit.parameterValues = { ...commandToEdit.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' };
+        }
         setEditingCommand({ ...commandToEdit, parameters: fullBaseCommand.parameters });
         setShowParameterDialog(true);
     } else {
         toast({ variant: 'destructive', title: 'Error', description: `Base command definition for "${command.name}" not found.` });
-        setEditingCommand(command);
+        setEditingCommand(command); // Allow editing even if base not found, might be an old custom one
         setShowParameterDialog(true);
     }
   };
@@ -324,7 +330,10 @@ export function ScriptEditorColumn({
     );
     setShowParameterDialog(false);
     setEditingCommand(null);
-    toast({title: updatedCommand.baseCommandId === 'internal-add-comment' ? 'Comment Updated' : 'Command Updated', description: `${updatedCommand.name} details saved.`});
+    let title = 'Command Updated';
+    if (updatedCommand.baseCommandId === 'internal-add-comment') title = 'Comment Updated';
+    else if (updatedCommand.baseCommandId === 'internal-user-prompt') title = 'User Prompt Updated';
+    toast({title: title, description: `${updatedCommand.name} details saved.`});
   };
 
   const handleRemoveElement = (instanceId: string) => {
@@ -396,18 +405,22 @@ export function ScriptEditorColumn({
                         (() => {
                           const cmdElement = element as ScriptPowerShellCommand;
                           let hasUnsetParameters = false;
-                          if (cmdElement.baseCommandId !== 'internal-add-comment') {
+                          if (cmdElement.baseCommandId === 'internal-add-comment') {
+                             if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
+                                hasUnsetParameters = true;
+                             }
+                          } else if (cmdElement.baseCommandId === 'internal-user-prompt') {
+                            if (!cmdElement.parameterValues['PromptText'] || cmdElement.parameterValues['PromptText'] === 'ACTION NEEDED: [Your prompt text here]') {
+                                hasUnsetParameters = true;
+                            }
+                          } else { // For regular commands
                             const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
                             const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
-                                                        .filter(([key]) => !key.startsWith('_'))
+                                                        .filter(([key]) => !key.startsWith('_')) // Exclude internal flags like _prependBlankLine
                                                         .every(([,val]) => val === '');
                             if (hasDefinedParams && allValuesAreEmpty) {
                               hasUnsetParameters = true;
                             }
-                          } else {
-                             if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
-                                hasUnsetParameters = true;
-                             }
                           }
                           return (
                             <ScriptCommandChip
@@ -446,7 +459,7 @@ export function ScriptEditorColumn({
       </CardFooter>
       {editingCommand && (
         <ParameterEditDialog
-          key={editingCommand.instanceId}
+          key={editingCommand.instanceId} 
           isOpen={showParameterDialog}
           onOpenChange={setShowParameterDialog}
           command={editingCommand}

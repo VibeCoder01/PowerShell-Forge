@@ -5,7 +5,7 @@ import type { ScriptPowerShellCommand } from '@/types/powershell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { MessageSquareText } from 'lucide-react'; // For comment icon
+import { MessageSquareText, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 
 interface ScriptCommandChipProps {
   command: ScriptPowerShellCommand;
@@ -24,7 +24,8 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters }: Scri
         className={cn(
           "flex-grow h-auto py-1.5 px-2.5 text-left justify-start items-center shadow-sm hover:shadow-md w-full",
           "border-muted-foreground/30 hover:border-muted-foreground/70 bg-card/50",
-          hasUnsetParameters && !commentText ? "border-amber-500 hover:border-amber-600" : "" // Highlight if comment is empty
+           // Highlight if comment is empty or default placeholder
+          (hasUnsetParameters && (!commentText || commentText === "Your comment here")) ? "border-amber-500 hover:border-amber-600" : ""
         )}
         onClick={onClick}
         aria-label={`Edit comment: ${commentText}`}
@@ -33,14 +34,45 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters }: Scri
           <MessageSquareText className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className={cn(
             "font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words",
-            !commentText ? "italic" : ""
+            (!commentText || commentText === "Your comment here") ? "italic" : ""
           )}>
             {displayComment || "Empty comment. Click to edit."}
           </span>
         </div>
       </Button>
     );
+  } else if (command.baseCommandId === 'internal-user-prompt') {
+    const promptText = command.parameterValues['PromptText'] || '';
+    const defaultPromptText = "ACTION NEEDED: [Your prompt text here]";
+    const displayPrompt = promptText.length > 60 ? promptText.substring(0, 57) + '...' : promptText;
+    const isEmptyOrPlaceholder = !promptText || promptText === defaultPromptText;
+
+    return (
+      <Button
+        variant="outline" // Base variant, background will override
+        className={cn(
+          "flex-grow h-auto py-1.5 px-2.5 text-left justify-start items-center shadow-sm hover:shadow-md w-full",
+          // Solid bright color:
+          "bg-yellow-400 hover:bg-yellow-500 text-yellow-950 border-yellow-500 hover:border-yellow-600",
+           // Highlight if prompt is empty or default placeholder
+          (hasUnsetParameters && isEmptyOrPlaceholder) && "ring-2 ring-offset-1 ring-red-500"
+        )}
+        onClick={onClick}
+        aria-label={`Edit user prompt: ${promptText}`}
+      >
+        <div className="flex items-center gap-1.5 w-full">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className={cn(
+            "font-mono text-xs whitespace-pre-wrap break-words",
+            isEmptyOrPlaceholder ? "italic" : ""
+          )}>
+            {displayPrompt || "Empty prompt. Click to edit."}
+          </span>
+        </div>
+      </Button>
+    );
   }
+
 
   // Original rendering for other commands
   return (

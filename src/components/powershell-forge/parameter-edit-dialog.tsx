@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ScriptPowerShellCommand, PowerShellCommandParameter } from '@/types/powershell';
-import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown, MessageSquareText } from 'lucide-react';
+import { FolderOpen, PlusCircle, MinusCircle, Settings2, ChevronsUpDown, MessageSquareText, AlertTriangle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateUniqueId } from '@/lib/utils';
@@ -69,17 +69,21 @@ export function ParameterEditDialog({
   const { toast } = useToast();
 
   const isCommentCommand = command && command.baseCommandId === 'internal-add-comment';
+  const isUserPromptCommand = command && command.baseCommandId === 'internal-user-prompt';
 
   useEffect(() => {
     if (command) {
       const initialValues = { ...command.parameterValues };
-      // Ensure _prependBlankLine defaults to true if not present (e.g. older data)
       if (isCommentCommand && initialValues['_prependBlankLine'] === undefined) {
         initialValues['_prependBlankLine'] = 'true';
       }
+      // Ensure PromptText has a default if it's a new user prompt and somehow empty
+      if (isUserPromptCommand && initialValues['PromptText'] === undefined) {
+        initialValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
+      }
       setCurrentParameterValues(initialValues);
       
-      if (!isCommentCommand) {
+      if (!isCommentCommand && !isUserPromptCommand) {
         const definedParamNames = command.parameters.map(p => p.name);
         const commonParamNames = COMMON_PARAMETERS_LIST.map(p => p.name);
         // Ad-hoc params are those in parameterValues not in defined or common params
@@ -87,16 +91,17 @@ export function ParameterEditDialog({
           .filter(key => 
             !definedParamNames.includes(key) && 
             !commonParamNames.includes(key) &&
-            key !== 'CommentText' && // Exclude comment text itself
-            key !== '_prependBlankLine' // Exclude our internal flag
+            key !== 'CommentText' && 
+            key !== '_prependBlankLine' &&
+            key !== 'PromptText'
           )
           .map(name => ({ id: generateUniqueId(), name }));
         setAdHocParams(existingAdHoc);
       } else {
-        setAdHocParams([]); // No ad-hoc params for comments
+        setAdHocParams([]); 
       }
     }
-  }, [command, isCommentCommand]);
+  }, [command, isCommentCommand, isUserPromptCommand]);
 
   const handleValueChange = (paramName: string, value: string) => {
     setCurrentParameterValues(prev => ({ ...prev, [paramName]: value }));
@@ -167,19 +172,35 @@ export function ParameterEditDialog({
     param => !COMMON_PARAMETERS_LIST.some(commonParam => commonParam.name.toLowerCase() === param.name.toLowerCase())
   );
 
+  const getDialogTitle = () => {
+    if (isCommentCommand) return 'Edit Comment';
+    if (isUserPromptCommand) return 'Edit User Prompt';
+    return `Edit Parameters for: ${command.name}`;
+  };
+
+  const getDialogIcon = () => {
+    if (isCommentCommand) return <MessageSquareText className="h-5 w-5 text-primary" />;
+    if (isUserPromptCommand) return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    return <Settings2 className="h-5 w-5 text-primary" />;
+  };
+  
+  const getDialogDescription = () => {
+    if (isCommentCommand) return 'Edit the text content of the comment. Each new line in the text box will be a new comment line prefixed with #.';
+    if (isUserPromptCommand) return 'Edit the text for this user prompt. This prompt is for your reference and will not be included in the generated PowerShell script.';
+    return 'Modify specific, common, or add custom parameters for this command instance. For path parameters, use Browse to get the filename, then edit the path manually.';
+  }
+
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
-            {isCommentCommand ? <MessageSquareText className="h-5 w-5 text-primary" /> : <Settings2 className="h-5 w-5 text-primary" />}
-            {isCommentCommand ? 'Edit Comment' : `Edit Parameters for: ${command.name}`}
+            {getDialogIcon()}
+            {getDialogTitle()}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {isCommentCommand 
-              ? 'Edit the text content of the comment. Each new line in the text box will be a new comment line prefixed with #.'
-              : 'Modify specific, common, or add custom parameters for this command instance. For path parameters, use Browse to get the filename, then edit the path manually.'
-            }
+            {getDialogDescription()}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[65vh] pr-2">
@@ -199,7 +220,7 @@ export function ParameterEditDialog({
                 <div className="flex items-center space-x-2 mt-4 pl-1">
                   <Checkbox
                     id="prepend-blank-line"
-                    checked={currentParameterValues['_prependBlankLine'] !== 'false'} // Defaults to checked if 'true' or undefined
+                    checked={currentParameterValues['_prependBlankLine'] !== 'false'} 
                     onCheckedChange={handlePrependBlankLineChange}
                     aria-label="Prepend blank line before comment"
                   />
@@ -210,7 +231,22 @@ export function ParameterEditDialog({
               </div>
             )}
 
-            {!isCommentCommand && specificParameters.length > 0 && (
+            {isUserPromptCommand && (
+              <div className="space-y-4">
+                <Label htmlFor="PromptText" className="text-sm font-semibold text-foreground">Prompt Text</Label>
+                <Textarea
+                  id="PromptText"
+                  value={currentParameterValues['PromptText'] || ''}
+                  onChange={(e) => handleValueChange('PromptText', e.target.value)}
+                  className="flex-grow"
+                  placeholder="ACTION NEEDED: [Your prompt text here]"
+                  rows={4}
+                />
+              </div>
+            )}
+
+
+            {!isCommentCommand && !isUserPromptCommand && specificParameters.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-foreground">Specific Parameters</h3>
                 {specificParameters.map((param) => {
@@ -248,11 +284,11 @@ export function ParameterEditDialog({
                 })}
               </div>
             )}
-            {!isCommentCommand && specificParameters.length === 0 && !adHocParams.length && (
+            {!isCommentCommand && !isUserPromptCommand && specificParameters.length === 0 && !adHocParams.length && (
                  <p className="text-xs text-muted-foreground pl-1">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
             )}
 
-            {!isCommentCommand && (
+            {!isCommentCommand && !isUserPromptCommand && (
               <Accordion type="single" collapsible className="w-full pt-2">
                 <AccordionItem value="common-parameters">
                   <AccordionTrigger className="text-sm font-semibold hover:no-underline pl-1">

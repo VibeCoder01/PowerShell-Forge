@@ -33,4 +33,3 @@ export interface RawScriptLine {
 export type ScriptElement = ScriptPowerShellCommand | RawScriptLine;
 
 export type ScriptType = 'add' | 'launch' | 'remove';
-

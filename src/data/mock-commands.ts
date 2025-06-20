@@ -39,7 +39,15 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Comment',
     category: 'Scripting Constructs',
     parameters: [{ name: 'CommentText' }], // Single parameter for the comment content
-    description: 'Adds an editable comment line to the script.',
+    description: 'Adds an editable comment line to the script. Rendered as # in .ps1.',
+  },
+  // User Aids
+  {
+    id: 'internal-user-prompt',
+    name: 'User Prompt',
+    category: 'User Aids',
+    parameters: [{ name: 'PromptText' }],
+    description: 'Adds an in-editor visual prompt or to-do item. Not rendered in .ps1 scripts.',
   },
 
   // System Management

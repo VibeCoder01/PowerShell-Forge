@@ -31,6 +31,10 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
       return (prependBlankLine ? '\n' : '') + formattedComment;
     }
 
+    if (commandElement.baseCommandId === 'internal-user-prompt') {
+      return ''; // User Prompts are not rendered into the PowerShell script
+    }
+
     const paramsString = commandElement.parameters
       .map(param => {
         const value = commandElement.parameterValues[param.name];
@@ -249,6 +253,13 @@ export default function PowerShellForgePage() {
             return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, '_prependBlankLine': 'true' }};
           }
         }
+        // Initialize PromptText for older internal-user-prompt commands if missing
+        if (el.type === 'command' && el.baseCommandId === 'internal-user-prompt') {
+          const cmdEl = el as ScriptPowerShellCommand;
+          if (cmdEl.parameterValues['PromptText'] === undefined) {
+             return { ...cmdEl, parameterValues: { ...cmdEl.parameterValues, 'PromptText': 'ACTION NEEDED: [Your prompt text here]' }};
+          }
+        }
         return el;
       });
     };
@@ -405,13 +416,13 @@ export default function PowerShellForgePage() {
           {columnsData.map((col, index) => {
             const isLastColumn = index === columnsData.length - 1;
             const columnStyle: React.CSSProperties = isLastColumn
-              ? { // Actions Panel - shrinks to content
+              ? { 
                   flexGrow: 0,
                   flexShrink: 0, 
                   flexBasis: 'auto',
-                  overflowX: 'auto', // Handle potential overflow if content is wider than viewport allows
+                  overflowX: 'auto', 
                 }
-              : { // Other resizable columns
+              : { 
                   flexGrow: columnWidths[index], 
                   flexShrink: 1,
                   flexBasis: `${columnWidths[index]}%`, 
@@ -426,7 +437,7 @@ export default function PowerShellForgePage() {
                 >
                   {col.component}
                 </div>
-                {index < columnsData.length - 1 && ( // Add resizer for all but the very last column
+                {index < columnsData.length - 1 && ( 
                   <ResizableHandle
                     onResize={(deltaX) => handleResize(index, deltaX)}
                     onResizeEnd={handleResizeEnd}
@@ -440,4 +451,3 @@ export default function PowerShellForgePage() {
     </div>
   );
 }
-
