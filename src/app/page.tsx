@@ -360,7 +360,7 @@ export default function PowerShellForgePage() {
           <TerminalSquare className="h-8 w-8" />
           PowerShell Forge
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Create and manage PowerShell scripts for applications.
         </p>
       </header>

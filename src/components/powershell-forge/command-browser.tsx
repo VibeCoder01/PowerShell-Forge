@@ -87,8 +87,8 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
     <>
       <Card className="h-full flex flex-col shadow-xl">
         <CardHeader className="py-4 px-4 border-b flex flex-row items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <List className="h-6 w-6 text-primary" />
+          <CardTitle className="text-base flex items-center gap-2">
+            <List className="h-5 w-5 text-primary" />
             Command Browser
           </CardTitle>
           <Button variant="outline" size="sm" onClick={() => setShowCustomCommandDialog(true)}>
@@ -102,7 +102,7 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Search PowerShell commands"
-            className="w-full"
+            className="w-full text-sm"
           />
         </div>
         <CardContent className="p-0 flex-grow overflow-hidden">
@@ -116,7 +116,7 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
               >
                 {filteredAndGroupedCommands.map(({ category, commands }) => (
                   <AccordionItem value={category} key={category} className="border-b-0 mb-1">
-                    <AccordionTrigger className="py-2 px-3 text-sm font-medium bg-muted/50 hover:bg-muted rounded-md">
+                    <AccordionTrigger className="py-2 px-3 text-xs font-medium bg-muted/50 hover:bg-muted rounded-md">
                       {category} ({commands.length})
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-0 pl-3 pr-1">
@@ -130,8 +130,8 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                 <Inbox className="h-16 w-16 mb-4" />
-                <p className="text-lg font-medium">No commands found</p>
-                <p className="text-sm text-center">
+                <p className="text-base font-medium">No commands found</p>
+                <p className="text-xs text-center">
                   {searchTerm 
                     ? "Try adjusting your search term or add a custom command." 
                     : "The command list is empty. Try adding custom commands."}

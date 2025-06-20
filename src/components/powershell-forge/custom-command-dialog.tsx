@@ -123,18 +123,18 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="text-base flex items-center gap-2">
             <PencilLine className="h-5 w-5 text-primary" />
             Create Custom PowerShell Command
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             Define your own PowerShell command, its category, and its parameters.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6 -mr-6">
           <div className="grid gap-4 py-4 pr-6">
             <div className="grid gap-1.5 pl-1">
-              <Label htmlFor="custom-command-name">Command Name <span className="text-destructive">*</span></Label>
+              <Label htmlFor="custom-command-name" className="text-xs">Command Name <span className="text-destructive">*</span></Label>
               <Input
                 id="custom-command-name"
                 value={commandName}
@@ -143,7 +143,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
               />
             </div>
              <div className="grid gap-1.5 pl-1">
-              <Label htmlFor="custom-command-category">Category <span className="text-destructive">*</span></Label>
+              <Label htmlFor="custom-command-category" className="text-xs">Category <span className="text-destructive">*</span></Label>
               <Input
                 id="custom-command-category"
                 value={category}
@@ -156,7 +156,7 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
               </datalist>
             </div>
             <div className="grid gap-1.5 pl-1">
-              <Label htmlFor="custom-command-description">Description</Label>
+              <Label htmlFor="custom-command-description" className="text-xs">Description</Label>
               <Textarea
                 id="custom-command-description"
                 value={description}
@@ -166,9 +166,9 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
               />
             </div>
             <div className="pl-1">
-              <Label className="mb-2 block">Parameters</Label>
+              <Label className="mb-2 block text-xs">Parameters</Label>
               {parameters.length === 0 && (
-                <p className="text-sm text-muted-foreground mb-2">No parameters defined yet.</p>
+                <p className="text-xs text-muted-foreground mb-2">No parameters defined yet.</p>
               )}
               {parameters.map((param, index) => (
                 <div key={param.id} className="flex items-center gap-2 mb-2">
@@ -189,17 +189,17 @@ export function CustomCommandDialog({ open, onOpenChange, onSave }: CustomComman
                   </Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={handleAddParameter} className="mt-1">
+              <Button variant="outline" size="sm" onClick={handleAddParameter} className="mt-1 text-xs">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Parameter
               </Button>
             </div>
           </div>
         </ScrollArea>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="text-xs">
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Save Command</Button>
+          <Button onClick={handleSubmit} className="text-xs">Save Command</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

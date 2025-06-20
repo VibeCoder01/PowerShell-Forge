@@ -171,11 +171,11 @@ export function ParameterEditDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="text-base flex items-center gap-2">
             {isCommentCommand ? <MessageSquareText className="h-5 w-5 text-primary" /> : <Settings2 className="h-5 w-5 text-primary" />}
             {isCommentCommand ? 'Edit Comment' : `Edit Parameters for: ${command.name}`}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             {isCommentCommand 
               ? 'Edit the text content of the comment. Each new line in the text box will be a new comment line prefixed with #.'
               : 'Modify specific, common, or add custom parameters for this command instance. For path parameters, use Browse to get the filename, then edit the path manually.'
@@ -187,7 +187,7 @@ export function ParameterEditDialog({
 
             {isCommentCommand && (
               <div className="space-y-4">
-                <Label htmlFor="CommentText" className="text-md font-semibold text-foreground">Comment Text</Label>
+                <Label htmlFor="CommentText" className="text-sm font-semibold text-foreground">Comment Text</Label>
                 <Textarea
                   id="CommentText"
                   value={currentParameterValues['CommentText'] || ''}
@@ -203,7 +203,7 @@ export function ParameterEditDialog({
                     onCheckedChange={handlePrependBlankLineChange}
                     aria-label="Prepend blank line before comment"
                   />
-                  <Label htmlFor="prepend-blank-line" className="text-sm font-normal text-muted-foreground">
+                  <Label htmlFor="prepend-blank-line" className="text-xs font-normal text-muted-foreground">
                     Prepend blank line before comment in script output
                   </Label>
                 </div>
@@ -212,7 +212,7 @@ export function ParameterEditDialog({
 
             {!isCommentCommand && specificParameters.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-md font-semibold text-foreground">Specific Parameters</h3>
+                <h3 className="text-sm font-semibold text-foreground">Specific Parameters</h3>
                 {specificParameters.map((param) => {
                   const isPotentiallyPathOrFileName = 
                     (pathParamNames.some(name => name.toLowerCase() === param.name.toLowerCase()) ||
@@ -220,7 +220,7 @@ export function ParameterEditDialog({
 
                   return (
                     <div key={param.name} className="grid grid-cols-1 md:grid-cols-5 items-start gap-x-4 gap-y-1">
-                      <Label htmlFor={param.name} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1 pt-2">
+                      <Label htmlFor={param.name} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1 pt-2 text-xs">
                         {param.name}
                       </Label>
                       <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'md:col-span-3' : 'md:col-span-4'} py-1 pr-1`}>
@@ -237,7 +237,7 @@ export function ParameterEditDialog({
                           variant="outline"
                           size="sm"
                           onClick={() => handleBrowseClick(param.name)}
-                          className="md:col-span-1 w-full md:w-auto mt-1 md:mt-0 self-center"
+                          className="md:col-span-1 w-full md:w-auto mt-1 md:mt-0 self-center text-xs"
                           aria-label={`Browse for ${param.name}`}
                         >
                           <FolderOpen className="mr-2 h-4 w-4" /> Browse
@@ -249,13 +249,13 @@ export function ParameterEditDialog({
               </div>
             )}
             {!isCommentCommand && specificParameters.length === 0 && !adHocParams.length && (
-                 <p className="text-sm text-muted-foreground pl-1">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
+                 <p className="text-xs text-muted-foreground pl-1">This command has no specific or custom parameters defined. You can add custom parameters below or use common parameters.</p>
             )}
 
             {!isCommentCommand && (
               <Accordion type="single" collapsible className="w-full pt-2">
                 <AccordionItem value="common-parameters">
-                  <AccordionTrigger className="text-md font-semibold hover:no-underline pl-1">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline pl-1">
                     <div className="flex items-center gap-2">
                       <ChevronsUpDown className="h-4 w-4" /> Common Parameters
                     </div>
@@ -263,7 +263,7 @@ export function ParameterEditDialog({
                   <AccordionContent className="pt-2 space-y-4">
                     {COMMON_PARAMETERS_LIST.map((param) => (
                       <div key={param.name} className="grid grid-cols-1 md:grid-cols-5 items-center gap-x-4 gap-y-1">
-                        <Label htmlFor={`common-${param.name}`} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1">
+                        <Label htmlFor={`common-${param.name}`} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1 text-xs">
                           {param.name}
                         </Label>
                         <div className="md:col-span-4 py-1 pr-1">
@@ -280,7 +280,7 @@ export function ParameterEditDialog({
                 </AccordionItem>
 
                 <AccordionItem value="adhoc-parameters">
-                  <AccordionTrigger className="text-md font-semibold hover:no-underline pl-1">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline pl-1">
                     <div className="flex items-center gap-2">
                       <ChevronsUpDown className="h-4 w-4" /> Additional Custom Parameters ({adHocParams.length})
                     </div>
@@ -288,7 +288,7 @@ export function ParameterEditDialog({
                   <AccordionContent className="pt-2 space-y-4">
                     {adHocParams.map((param) => (
                       <div key={param.id} className="grid grid-cols-1 md:grid-cols-5 items-center gap-x-4 gap-y-1">
-                        <Label htmlFor={`adhoc-${param.id}`} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1">
+                        <Label htmlFor={`adhoc-${param.id}`} className="md:text-right col-span-1 whitespace-nowrap pr-2 pl-1 text-xs">
                           {param.name}
                         </Label>
                         <div className="md:col-span-3 py-1 pr-1">
@@ -311,7 +311,7 @@ export function ParameterEditDialog({
                       </div>
                     ))}
                     <div className="pt-4 space-y-2 border-t mt-4 pl-1">
-                      <Label className="text-sm font-medium">Add New Custom Parameter</Label>
+                      <Label className="text-xs font-medium">Add New Custom Parameter</Label>
                       <div className="flex flex-col sm:flex-row items-stretch gap-2">
                         <Input
                           value={newAdHocName}
@@ -325,7 +325,7 @@ export function ParameterEditDialog({
                           placeholder="Parameter Value"
                           className="flex-grow"
                         />
-                        <Button onClick={handleAddAdHocParam} variant="outline" size="sm" className="shrink-0">
+                        <Button onClick={handleAddAdHocParam} variant="outline" size="sm" className="shrink-0 text-xs">
                           <PlusCircle className="mr-2 h-4 w-4" /> Add
                         </Button>
                       </div>
@@ -345,10 +345,10 @@ export function ParameterEditDialog({
           aria-hidden="true"
         />
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="text-xs">
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Save Changes</Button>
+          <Button onClick={handleSubmit} className="text-xs">Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

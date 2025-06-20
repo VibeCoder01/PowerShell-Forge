@@ -67,22 +67,22 @@ export function ActionsPanel({
   return (
     <Card className="h-full flex flex-col shadow-xl">
       <CardHeader className="py-4 px-4 border-b">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Settings2 className="h-6 w-6 text-primary" />
+        <CardTitle className="text-base flex items-center gap-2">
+          <Settings2 className="h-5 w-5 text-primary" />
           Actions
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 flex-grow space-y-6">
         <div>
-          <h3 className="text-md font-semibold mb-3 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Script Management</h3>
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
             <div key={type} className="mb-3 p-3 border rounded-md bg-background/50">
-              <p className="capitalize font-medium mb-2 text-sm">{type} Script (.ps1)</p>
+              <p className="capitalize font-medium mb-2 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1">
+                <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1 text-xs">
                   <Download className="mr-2 h-4 w-4" /> Save {type}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => triggerFileInput(type)} className="flex-1">
+                <Button variant="outline" size="sm" onClick={() => triggerFileInput(type)} className="flex-1 text-xs">
                   <Upload className="mr-2 h-4 w-4" /> Load {type}
                 </Button>
                 <input
@@ -98,12 +98,12 @@ export function ActionsPanel({
           ))}
           <Separator className="my-4" />
            <div className="mb-3 p-3 border rounded-md bg-background/50">
-              <p className="font-medium mb-2 text-sm">All Scripts (.json)</p>
+              <p className="font-medium mb-2 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="flex-1">
+                <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="flex-1 text-xs">
                   <Download className="mr-2 h-4 w-4" /> Save All
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => triggerFileInput('all')} className="flex-1">
+                <Button variant="outline" size="sm" onClick={() => triggerFileInput('all')} className="flex-1 text-xs">
                   <Upload className="mr-2 h-4 w-4" /> Load All
                 </Button>
                  <input

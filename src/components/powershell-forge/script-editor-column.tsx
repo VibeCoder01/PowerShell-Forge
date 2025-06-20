@@ -341,8 +341,8 @@ export function ScriptEditorColumn({
       aria-dropeffect={dragOperationType ?? 'none'}
     >
       <CardHeader className="py-4 px-4 border-b">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Icon className="h-6 w-6 text-primary" />
+        <CardTitle className="text-base flex items-center gap-2">
+          <Icon className="h-5 w-5 text-primary" />
           {title}
         </CardTitle>
       </CardHeader>
@@ -353,9 +353,9 @@ export function ScriptEditorColumn({
         onDragLeave={handleDragLeaveColumnContent}
       >
         <ScrollArea className="h-full w-full">
-          <div className="p-4 space-y-1 min-h-[200px] font-mono text-sm">
+          <div className="p-4 space-y-1 min-h-[200px] font-mono text-xs">
             {scriptElements.length === 0 && !isDraggingOverColumn && (
-              <p className="text-muted-foreground text-center py-10">Drag commands or comments here...</p>
+              <p className="text-muted-foreground text-center py-10 text-xs">Drag commands or comments here...</p>
             )}
             {scriptElements.length === 0 && isDraggingOverColumn && (
               <div className="h-full flex items-center justify-center">
@@ -389,7 +389,7 @@ export function ScriptEditorColumn({
                     <GripVertical className="h-5 w-5 text-muted-foreground mr-1 cursor-grab flex-shrink-0" />
                     <div className="flex-grow">
                       {element.type === 'raw' ? (
-                        <div className="p-2 border border-transparent rounded break-all">
+                        <div className="p-2 border border-transparent rounded break-all font-mono text-xs">
                           {(element as RawScriptLine).content || <span className="text-muted-foreground">[Empty line]</span>}
                         </div>
                       ) : (

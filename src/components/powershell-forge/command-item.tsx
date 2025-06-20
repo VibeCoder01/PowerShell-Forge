@@ -34,7 +34,7 @@ export function CommandItem({ command }: CommandItemProps) {
     >
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={command.id} className="border-b-0">
-          <AccordionTrigger className="p-3 hover:no-underline text-sm">
+          <AccordionTrigger className="p-3 hover:no-underline text-xs">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
                 <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
