@@ -66,13 +66,13 @@ export function ActionsPanel({
 
   return (
     <Card className="h-full flex flex-col shadow-xl w-fit">
-      <CardHeader className="py-3 px-4 border-b">
+      <CardHeader className="py-3 px-4 pr-4 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-2 pt-2 pb-2 flex-grow space-y-2">
+      <CardContent className="px-2 pr-2 pt-2 pb-2 flex-grow space-y-2">
         <div>
           <h3 className="text-xs font-semibold mb-1 flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-primary" />Script Management</h3>
           {(['add', 'launch', 'remove'] as ScriptType[]).map((type) => (
@@ -97,7 +97,7 @@ export function ActionsPanel({
             </div>
           ))}
           <Separator className="my-1" />
-           <div className="mb-1 p-1 border rounded-md bg-background/50">
+           <div className="mb-1 p-1 border rounded-md bg-muted/50">
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
