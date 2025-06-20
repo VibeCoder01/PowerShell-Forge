@@ -67,7 +67,7 @@ export function ActionsPanel({
   return (
     <Card className="h-full flex flex-col shadow-xl">
       <CardHeader className="py-4 px-4 border-b">
-        <CardTitle className="text-xs flex items-center gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-primary" />
           Actions
         </CardTitle>
@@ -79,10 +79,10 @@ export function ActionsPanel({
             <div key={type} className="mb-1 p-1 border rounded-md bg-background/50">
               <p className="capitalize font-medium mb-1 text-xs">{type} Script (.ps1)</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="flex-1 text-xs">
+                <Button variant="outline" size="sm" onClick={() => onSaveScript(type)} className="text-xs">
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Save
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => triggerFileInput(type)} className="flex-1 text-xs">
+                <Button variant="outline" size="sm" onClick={() => triggerFileInput(type)} className="text-xs">
                   <Upload className="mr-1.5 h-3.5 w-3.5" /> Load
                 </Button>
                 <input
@@ -100,10 +100,10 @@ export function ActionsPanel({
            <div className="mb-1 p-1 border rounded-md bg-background/50">
               <p className="font-medium mb-1 text-xs">All Scripts (.json)</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="flex-1 text-xs">
+                <Button variant="outline" size="sm" onClick={onSaveAllScripts} className="text-xs">
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Save All
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => triggerFileInput('all')} className="flex-1 text-xs">
+                <Button variant="outline" size="sm" onClick={() => triggerFileInput('all')} className="text-xs">
                   <Upload className="mr-1.5 h-3.5 w-3.5" /> Load All
                 </Button>
                  <input
