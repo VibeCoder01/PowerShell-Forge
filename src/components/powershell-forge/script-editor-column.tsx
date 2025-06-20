@@ -41,6 +41,7 @@ export function ScriptEditorColumn({
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dropTargetInfo, setDropTargetInfo] = useState<{ targetId: string; position: 'before' | 'after' } | null>(null);
   const [isDraggingOverItem, setIsDraggingOverItem] = useState<string | null>(null);
+  const [dragOperationType, setDragOperationType] = useState<'copy' | 'move' | null>(null);
 
 
   const handleDragStartNewCommand = (e: React.DragEvent<HTMLDivElement>) => {
@@ -127,6 +128,7 @@ export function ScriptEditorColumn({
   const handleDropOnColumnContent = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverColumn(false);
+    setDragOperationType(null);
     setIsDraggingOverItem(null); // Clear item-specific highlight
 
     const reorderSourceId = e.dataTransfer.getData('text/x-powershell-forge-reorder-item');
@@ -192,27 +194,33 @@ export function ScriptEditorColumn({
     e.preventDefault();
     const isReorderOp = e.dataTransfer.types.includes('text/x-powershell-forge-reorder-item');
     const isNewCommandOp = e.dataTransfer.types.includes('application/json');
+    
+    let effectiveDropEffect: 'copy' | 'move' | 'none' = 'none';
 
     if (isReorderOp) {
-      e.dataTransfer.dropEffect = 'move';
-      setIsDraggingOverColumn(true);
-      // If dragging over column but not a specific item, indicate drop at end
-      if (!isDraggingOverItem) {
-        setDropTargetInfo({ targetId: 'column-end', position: 'after' }); 
-      }
+      effectiveDropEffect = 'move';
     } else if (isNewCommandOp) {
-      e.dataTransfer.dropEffect = 'copy';
-      setIsDraggingOverColumn(true);
-      setDropTargetInfo(null); // Clear item-specific target for new command drop
-    } else {
-      e.dataTransfer.dropEffect = 'none';
+      effectiveDropEffect = 'copy';
+    }
+    
+    e.dataTransfer.dropEffect = effectiveDropEffect;
+    setDragOperationType(effectiveDropEffect !== 'none' ? effectiveDropEffect : null);
+    setIsDraggingOverColumn(effectiveDropEffect !== 'none');
+
+    if (effectiveDropEffect === 'move' && !isDraggingOverItem) {
+      setDropTargetInfo({ targetId: 'column-end', position: 'after' }); 
+    } else if (effectiveDropEffect === 'copy') {
+      setDropTargetInfo(null); 
     }
   };
 
-  const handleDragLeaveColumnContent = () => {
-    setIsDraggingOverColumn(false);
-    if (dropTargetInfo && dropTargetInfo.targetId === 'column-end') {
-      setDropTargetInfo(null);
+  const handleDragLeaveColumnContent = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDraggingOverColumn(false);
+      setDragOperationType(null);
+      if (dropTargetInfo && dropTargetInfo.targetId === 'column-end') {
+        setDropTargetInfo(null);
+      }
     }
   };
 
@@ -229,6 +237,7 @@ export function ScriptEditorColumn({
         setShowParameterDialog(true);
     } else {
         toast({ variant: 'destructive', title: 'Error', description: `Base command definition for "${command.name}" not found.` });
+        // Fallback: edit with potentially incomplete parameter definitions
         setEditingCommand(command); 
         setShowParameterDialog(true);
     }
@@ -253,8 +262,11 @@ export function ScriptEditorColumn({
 
   return (
     <Card 
-      className={`h-full flex flex-col shadow-xl transition-all duration-200 ${isDraggingOverColumn ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-      aria-dropeffect={isDraggingOverColumn && e.dataTransfer.types.includes('application/json') ? 'copy' : (isDraggingOverColumn ? 'move' : 'none')}
+      className={cn(
+        'h-full flex flex-col shadow-xl transition-all duration-200',
+        isDraggingOverColumn ? 'ring-2 ring-primary ring-offset-2' : ''
+      )}
+      aria-dropeffect={dragOperationType ?? 'none'}
     >
       <CardHeader className="py-4 px-4 border-b">
         <CardTitle className="text-lg flex items-center gap-2">
@@ -273,7 +285,7 @@ export function ScriptEditorColumn({
             {scriptElements.length === 0 && !isDraggingOverColumn && (
               <p className="text-muted-foreground text-center py-10">Drag commands or comments here...</p>
             )}
-             {scriptElements.length === 0 && isDraggingOverColumn && e.dataTransfer.types.includes('text/x-powershell-forge-reorder-item') && (
+             {scriptElements.length === 0 && isDraggingOverColumn && dragOperationType === 'move' && (
               <div className="h-full flex items-center justify-center">
                 <div className="h-1 w-full bg-accent my-1"></div>
               </div>
@@ -313,14 +325,17 @@ export function ScriptEditorColumn({
                           const cmdElement = element as ScriptPowerShellCommand;
                           let hasUnsetParameters = false;
                           if (cmdElement.baseCommandId !== 'internal-add-comment') {
+                            // A command has unset parameters if it has defined parameters,
+                            // and all of its parameterValues (excluding internal ones like _prependBlankLine) are empty strings.
                             const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
                             const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
-                                                        .filter(([key]) => !key.startsWith('_'))
+                                                        .filter(([key]) => !key.startsWith('_')) // Exclude internal/faux params
                                                         .every(([,val]) => val === '');
                             if (hasDefinedParams && allValuesAreEmpty) {
                               hasUnsetParameters = true;
                             }
-                          } else { 
+                          } else { // This is a comment object
+                             // A comment is considered "unset" if its text is empty or the placeholder
                              if (!cmdElement.parameterValues['CommentText'] || cmdElement.parameterValues['CommentText'] === 'Your comment here') {
                                 hasUnsetParameters = true; 
                              }
