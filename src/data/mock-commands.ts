@@ -26,9 +26,9 @@ const COMMON_POWERHSHELL_PARAMETERS = [
   'ErrorVariable', 'WarningVariable', 'InformationVariable', 'OutVariable', 
   'OutBuffer', 'PipelineVariable', 'WhatIf', 'Confirm', 'UseTransaction',
   'PassThru', 'Force', 'Credential', 'AsJob', 'ComputerName', 'InputObject',
-  'Path', 'LiteralPath', 'Name', 'Id', 'Include', 'Exclude', 'Filter', 'Scope',
-  'Value', 'DisplayName', 'Description', 'SourceIdentifier'
-  // Add other truly ubiquitous common parameters if needed, but be conservative
+  'Path', 'LiteralPath', 'Id', 'Include', 'Exclude', 'Filter', 'Scope',
+  'DisplayName', 'Description', 'SourceIdentifier'
+  // Name and Value removed from here
 ];
 
 
@@ -56,8 +56,8 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Start ForEach Loop',
     category: 'Loop Control',
     parameters: [
-      { name: 'InputObject' }, // e.g., $myArray, (Get-Service)
-      { name: 'ItemVariable' },  // e.g., item (becomes $item), defaults to 'item'
+      { name: 'InputObject' }, 
+      { name: 'ItemVariable' },  
     ],
     description: 'Starts a ForEach-Object loop. Requires a corresponding "End ForEach Loop".',
   },
@@ -73,9 +73,9 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Start For Loop',
     category: 'Loop Control',
     parameters: [
-      { name: 'Initializer' },   // e.g., $i = 0
-      { name: 'Condition' },     // e.g., $i -lt 10
-      { name: 'Iterator' },      // e.g., $i++
+      { name: 'Initializer' },   
+      { name: 'Condition' },     
+      { name: 'Iterator' },      
     ],
     description: 'Starts a For loop. Requires a corresponding "End For Loop".',
   },
@@ -91,7 +91,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     name: 'Start While Loop',
     category: 'Loop Control',
     parameters: [
-      { name: 'Condition' },     // e.g., $true, $count -gt 0
+      { name: 'Condition' },     
     ],
     description: 'Starts a While loop. Requires a corresponding "End While Loop".',
   },
@@ -151,21 +151,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-HotFix',
     name: 'Get-HotFix',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('Id'), // Description is often a common parameter if not the ID itself
+    parameters: parseSpecificParamsFromNameList('Id'), 
     description: 'Gets the hotfixes that have been applied to the local and remote computers.',
   },
   {
     id: 'Get-Process',
     name: 'Get-Process',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('IncludeUserName,Module,FileVersionInfo'),
+    parameters: parseSpecificParamsFromNameList('Name,IncludeUserName,Module,FileVersionInfo'),
     description: 'Gets the processes that are running on the local computer or a remote computer.',
   },
   {
     id: 'Get-Service',
     name: 'Get-Service',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('DependentServices,RequiredServices'),
+    parameters: parseSpecificParamsFromNameList('Name,DependentServices,RequiredServices'),
     description: 'Gets the services on a local or remote computer.',
   },
   {
@@ -179,21 +179,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Restart-Service',
     name: 'Restart-Service',
     category: 'System Management',
-    parameters: [], // Force, PassThru common
+    parameters: parseSpecificParamsFromNameList('Name'), 
     description: 'Stops and then starts one or more services.',
   },
   {
     id: 'Start-Process',
     name: 'Start-Process',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('ArgumentList,WorkingDirectory,LoadUserProfile,NoNewWindow,RedirectStandardError,RedirectStandardInput,RedirectStandardOutput,Verb,WindowStyle,Wait,UseNewEnvironment'),
+    parameters: parseSpecificParamsFromNameList('FilePath,ArgumentList,WorkingDirectory,LoadUserProfile,NoNewWindow,RedirectStandardError,RedirectStandardInput,RedirectStandardOutput,Verb,WindowStyle,Wait,UseNewEnvironment'),
     description: 'Starts one or more processes on the local computer.',
   },
   {
     id: 'Start-Service',
     name: 'Start-Service',
     category: 'System Management',
-    parameters: [], // PassThru common
+    parameters: parseSpecificParamsFromNameList('Name'), 
     description: 'Starts one or more stopped services.',
   },
   {
@@ -207,14 +207,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Stop-Process',
     name: 'Stop-Process',
     category: 'System Management',
-    parameters: [], // PassThru, Force common
+    parameters: parseSpecificParamsFromNameList('Name,Id'), 
     description: 'Stops one or more running processes.',
   },
   {
     id: 'Stop-Service',
     name: 'Stop-Service',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('NoWait'),
+    parameters: parseSpecificParamsFromNameList('Name,NoWait'),
     description: 'Stops one or more running services.',
   },
   {
@@ -270,7 +270,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Rename-Computer',
     name: 'Rename-Computer',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('DomainCredential,LocalCredential,NewName,Restart,WsmanAuthentication,Protocol'),
+    parameters: parseSpecificParamsFromNameList('NewName,DomainCredential,LocalCredential,Restart,WsmanAuthentication,Protocol'),
     description: 'Renames a computer or a domain.'
   },
   {
@@ -284,28 +284,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Resume-Service',
     name: 'Resume-Service',
     category: 'System Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Resumes one or more suspended (paused) services.'
   },
   {
     id: 'Set-Service',
     name: 'Set-Service',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('StartupType,Status'),
+    parameters: parseSpecificParamsFromNameList('Name,StartupType,Status,Description,DisplayName'),
     description: 'Starts, stops, and suspends a service, and changes its properties.'
   },
   {
     id: 'Show-EventLog',
     name: 'Show-EventLog',
     category: 'System Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('LogName'),
     description: 'Displays the event logs of the local or a remote computer in Event Viewer.'
   },
   {
     id: 'Suspend-Service',
     name: 'Suspend-Service',
     category: 'System Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Suspends (pauses) one or more running services.'
   },
   {
@@ -319,7 +319,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Write-EventLog',
     name: 'Write-EventLog',
     category: 'System Management',
-    parameters: parseSpecificParamsFromNameList('LogName,Source,EntryType,Category,EventId,Message,RawData'),
+    parameters: parseSpecificParamsFromNameList('LogName,Source,EventId,EntryType,Message,Category,RawData'),
     description: 'Writes an event to an event log.'
   },
 
@@ -329,63 +329,63 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Add-Content',
     name: 'Add-Content',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('NoNewline,Encoding,Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,Value,NoNewline,Encoding,Stream'),
     description: 'Adds content to the specified items, such as adding words to a file.',
   },
   {
     id: 'Clear-Content',
     name: 'Clear-Content',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,Stream'),
     description: 'Deletes the content of an item, such as the text in a file, but does not delete the item.',
   },
   {
     id: 'Clear-Item',
     name: 'Clear-Item',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Removes the content from an item, but does not delete the item.',
   },
   {
     id: 'Copy-Item',
     name: 'Copy-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Destination,Container,Recurse,FromSession,ToSession'),
+    parameters: parseSpecificParamsFromNameList('Path,Destination,Container,Recurse,FromSession,ToSession'),
     description: 'Copies an item from one location to another.',
   },
   {
     id: 'Get-ChildItem',
     name: 'Get-ChildItem',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Recurse,Depth,Attributes,FollowSymlink,Directory,File,Hidden,ReadOnly,System'),
+    parameters: parseSpecificParamsFromNameList('Path,Recurse,Depth,Attributes,FollowSymlink,Directory,File,Hidden,ReadOnly,System,Name'),
     description: 'Gets the items and child items in one or more specified locations.',
   },
   {
     id: 'Get-Content',
     name: 'Get-Content',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('ReadCount,TotalCount,Tail,Delimiter,Wait,Raw,Encoding,Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,ReadCount,TotalCount,Tail,Delimiter,Wait,Raw,Encoding,Stream'),
     description: 'Gets the content of the item at the specified location.',
   },
   {
     id: 'Get-Item',
     name: 'Get-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,Stream'),
     description: 'Gets the item at the specified location.',
   },
   {
     id: 'Get-ItemProperty',
     name: 'Get-ItemProperty',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path,Name'),
     description: 'Gets the properties of a specified item.',
   },
   {
     id: 'Get-ItemPropertyValue',
     name: 'Get-ItemPropertyValue',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path,Name'),
     description: 'Gets the value for one or more properties of a specified item.',
   },
   {
@@ -399,21 +399,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Join-Path',
     name: 'Join-Path',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('ChildPath,Resolve'),
+    parameters: parseSpecificParamsFromNameList('Path,ChildPath,Resolve'),
     description: 'Combines a path and a child path into a single path.'
   },
   {
     id: 'Move-Item',
     name: 'Move-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Destination'),
+    parameters: parseSpecificParamsFromNameList('Path,Destination'),
     description: 'Moves an item from one location to another.',
   },
   {
     id: 'New-Item',
     name: 'New-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('ItemType'),
+    parameters: parseSpecificParamsFromNameList('Path,Name,ItemType,Value'),
     description: 'Creates a new item.',
   },
   {
@@ -427,126 +427,126 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Push-Location',
     name: 'Push-Location',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('StackName'),
+    parameters: parseSpecificParamsFromNameList('Path,StackName'),
     description: 'Adds the current location to the top of a location stack.'
   },
   {
     id: 'Remove-Item',
     name: 'Remove-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Recurse,Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,Recurse,Stream'),
     description: 'Deletes items.',
   },
   {
     id: 'Rename-Item',
     name: 'Rename-Item',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('NewName'),
+    parameters: parseSpecificParamsFromNameList('Path,NewName'),
     description: 'Renames an item in a PowerShell provider namespace.',
   },
   {
     id: 'Set-Content',
     name: 'Set-Content',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('NoNewline,Encoding,Stream'),
+    parameters: parseSpecificParamsFromNameList('Path,Value,NoNewline,Encoding,Stream'),
     description: 'Writes new content or replaces the content in a file.',
   },
   {
     id: 'Set-ItemProperty',
     name: 'Set-ItemProperty',
     category: 'File & Item Management',
-    parameters: [], // Name and Value are core
+    parameters: parseSpecificParamsFromNameList('Path,Name,Value'), 
     description: 'Creates or changes the value of a property of an item.',
   },
   {
     id: 'Set-Location',
     name: 'Set-Location',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('StackName'),
+    parameters: parseSpecificParamsFromNameList('Path,StackName'),
     description: 'Sets the current working location to a specified location.'
   },
   {
     id: 'Split-Path',
     name: 'Split-Path',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Qualifier,NoQualifier,Parent,Leaf,Resolve,IsAbsolute'),
+    parameters: parseSpecificParamsFromNameList('Path,Qualifier,NoQualifier,Parent,Leaf,Resolve,IsAbsolute'),
     description: 'Returns the specified part of a path.',
   },
   {
     id: 'Test-Path',
     name: 'Test-Path',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('PathType,IsValid,OlderThan,NewerThan'),
+    parameters: parseSpecificParamsFromNameList('Path,PathType,IsValid,OlderThan,NewerThan'),
     description: 'Determines whether all elements of a path exist.',
   },
   {
     id: 'Clear-ItemProperty',
     name: 'Clear-ItemProperty',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path,Name'),
     description: 'Deletes the value of a property but does not delete the property.'
   },
   {
     id: 'Convert-Path',
     name: 'Convert-Path',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Converts a path from a PowerShell path to a PowerShell provider path.'
   },
   {
     id: 'Copy-ItemProperty',
     name: 'Copy-ItemProperty',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Destination'),
+    parameters: parseSpecificParamsFromNameList('Path,Name,Destination'),
     description: 'Copies a property and its value from a specified location to another location.'
   },
   {
     id: 'Invoke-Item',
     name: 'Invoke-Item',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Performs the default action on the specified item.'
   },
   {
     id: 'Move-ItemProperty',
     name: 'Move-ItemProperty',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Destination'),
+    parameters: parseSpecificParamsFromNameList('Path,Name,Destination'),
     description: 'Moves a property from one location to another.'
   },
   {
     id: 'New-ItemProperty',
     name: 'New-ItemProperty',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('PropertyType'),
+    parameters: parseSpecificParamsFromNameList('Path,Name,Value,PropertyType'),
     description: 'Creates a new property for an item and sets its value.'
   },
   {
     id: 'Out-File',
     name: 'Out-File',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Encoding,Append,NoClobber,Width,NoNewline'),
+    parameters: parseSpecificParamsFromNameList('FilePath,InputObject,Encoding,Append,NoClobber,Width,NoNewline'),
     description: 'Sends output to a file.'
   },
   {
     id: 'Resolve-Path',
     name: 'Resolve-Path',
     category: 'File & Item Management',
-    parameters: parseSpecificParamsFromNameList('Relative'),
+    parameters: parseSpecificParamsFromNameList('Path,Relative'),
     description: 'Resolves the wildcard characters in a path, and displays the path contents.'
   },
   {
     id: 'Set-Item',
     name: 'Set-Item',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path,Value'),
     description: 'Changes the value of an item to the value specified in the command.'
   },
   {
     id: 'Unblock-File',
     name: 'Unblock-File',
     category: 'File & Item Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Unblocks files that were downloaded from the Internet.'
   },
 
@@ -555,35 +555,35 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Add-History',
     name: 'Add-History',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('InputObject'),
     description: 'Adds entries to the session history.'
   },
   {
     id: 'Add-Member',
     name: 'Add-Member',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('MemberType,SecondValue,TypeName,NotePropertyName,NotePropertyValue,NotePropertyMembers'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Name,Value,MemberType,SecondValue,TypeName,NotePropertyName,NotePropertyValue,NotePropertyMembers'),
     description: 'Adds custom properties and methods to an instance of a PowerShell object.'
   },
   {
     id: 'Add-Type',
     name: 'Add-Type',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('CodeDomProvider,CompilerParameters,TypeDefinition,MemberDefinition,Namespace,UsingNamespace,AssemblyName,Language,ReferencedAssemblies,OutputAssembly,OutputType,IgnoreWarnings'),
+    parameters: parseSpecificParamsFromNameList('CodeDomProvider,CompilerParameters,TypeDefinition,MemberDefinition,Namespace,UsingNamespace,AssemblyName,Language,ReferencedAssemblies,OutputAssembly,OutputType,IgnoreWarnings,Path'),
     description: 'Adds a Microsoft .NET Framework type (a class or enumeration) to a PowerShell session.'
   },
   {
     id: 'Clear-History',
     name: 'Clear-History',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('CommandLine,Count,Newest'),
+    parameters: parseSpecificParamsFromNameList('Id,CommandLine,Count,Newest'),
     description: 'Deletes entries from the command history.'
   },
   {
     id: 'Clear-Variable',
     name: 'Clear-Variable',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Deletes the value of a variable, but does not delete the variable.'
   },
   {
@@ -597,28 +597,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Export-Alias',
     name: 'Export-Alias',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('As,Append,NoClobber'),
+    parameters: parseSpecificParamsFromNameList('Path,Name,As,Append,NoClobber'),
     description: 'Exports information about currently defined aliases to a file.'
   },
   {
     id: 'Export-Clixml',
     name: 'Export-Clixml',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Depth,NoClobber,Encoding'),
+    parameters: parseSpecificParamsFromNameList('Path,InputObject,Depth,NoClobber,Encoding'),
     description: 'Creates an XML-based representation of an object or objects and stores it in a file.'
   },
   {
     id: 'Export-Console',
     name: 'Export-Console',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('NoClobber'),
+    parameters: parseSpecificParamsFromNameList('Path,NoClobber'),
     description: 'Exports the names of snap-ins in the current session to a console file.'
   },
   {
     id: 'Export-FormatData',
     name: 'Export-FormatData',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('NoClobber,IncludeScriptBlock'),
+    parameters: parseSpecificParamsFromNameList('Path,InputObject,NoClobber,IncludeScriptBlock'),
     description: 'Saves formatting data from the current session in a formatting file.'
   },
   {
@@ -632,21 +632,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'ForEach-Object',
     name: 'ForEach-Object',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Begin,Process,End,RemainingScripts,MemberName,ArgumentList'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Begin,Process,End,RemainingScripts,MemberName,ArgumentList'),
     description: 'Performs an operation against each item in a collection of input objects.'
   },
   {
     id: 'Get-Alias',
     name: 'Get-Alias',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Definition'),
+    parameters: parseSpecificParamsFromNameList('Name,Definition'),
     description: 'Gets the aliases for the current session.'
   },
   {
     id: 'Get-Command',
     name: 'Get-Command',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Verb,Noun,Module,FullyQualifiedModule,CommandType,TotalCount,Syntax,ShowCommandInfo,ArgumentList,All,ListImported,ParameterName,ParameterType'),
+    parameters: parseSpecificParamsFromNameList('Name,Verb,Noun,Module,FullyQualifiedModule,CommandType,TotalCount,Syntax,ShowCommandInfo,ArgumentList,All,ListImported,ParameterName,ParameterType'),
     description: 'Gets all commands that are installed on the computer.',
   },
   {
@@ -667,14 +667,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Event',
     name: 'Get-Event',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('EventIdentifier'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,EventIdentifier'),
     description: 'Gets the events in the PowerShell event queue.'
   },
   {
     id: 'Get-EventSubscriber',
     name: 'Get-EventSubscriber',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('SubscriptionId'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,SubscriptionId'),
     description: 'Gets the event subscribers in the current session.'
   },
   {
@@ -688,14 +688,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Help',
     name: 'Get-Help',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Category,Component,Functionality,Role,Detailed,Full,Examples,Parameter,Online,ShowWindow'),
+    parameters: parseSpecificParamsFromNameList('Name,Path,Category,Component,Functionality,Role,Detailed,Full,Examples,Parameter,Online,ShowWindow'),
     description: 'Displays information about PowerShell commands and concepts.',
   },
   {
     id: 'Get-History',
     name: 'Get-History',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Count'),
+    parameters: parseSpecificParamsFromNameList('Id,Count'),
     description: 'Gets a list of the commands entered during the current session.',
   },
   {
@@ -709,21 +709,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Member',
     name: 'Get-Member',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('MemberType,View,Static'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Name,MemberType,View,Static'),
     description: 'Gets the properties and methods of objects.'
   },
   {
     id: 'Get-Module',
     name: 'Get-Module',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('FullyQualifiedName,All,ListAvailable,PSEdition,Refresh,PSSession,CimSession,CimResourceUri,CimNamespace'),
+    parameters: parseSpecificParamsFromNameList('Name,FullyQualifiedName,All,ListAvailable,PSEdition,Refresh,PSSession,CimSession,CimResourceUri,CimNamespace'),
     description: 'Gets the modules that have been imported or that can be imported into the current session.'
   },
   {
     id: 'Get-PSBreakpoint',
     name: 'Get-PSBreakpoint',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Script,Variable,Command,Type'),
+    parameters: parseSpecificParamsFromNameList('Id,Script,Variable,Command,Type'),
     description: 'Gets the breakpoints that are set in the current session.'
   },
   {
@@ -737,7 +737,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-PSDrive',
     name: 'Get-PSDrive',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('LiteralName,PSProvider'),
+    parameters: parseSpecificParamsFromNameList('Name,LiteralName,PSProvider'),
     description: 'Gets the PowerShell drives in the current session.'
   },
   {
@@ -751,28 +751,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Random',
     name: 'Get-Random',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('SetSeed,Maximum,Minimum,Count'),
+    parameters: parseSpecificParamsFromNameList('InputObject,SetSeed,Maximum,Minimum,Count'),
     description: 'Gets a random number, or selects objects randomly from a collection.'
   },
   {
     id: 'Get-Runspace',
     name: 'Get-Runspace',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('InstanceId'),
+    parameters: parseSpecificParamsFromNameList('Id,InstanceId'),
     description: 'Gets information about the runspaces in the current session.'
   },
   {
     id: 'Get-TimeZone',
     name: 'Get-TimeZone',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('ListAvailable'),
+    parameters: parseSpecificParamsFromNameList('Name,Id,ListAvailable'),
     description: 'Gets the current time zone or a list of available time zones.'
   },
   {
     id: 'Get-TraceSource',
     name: 'Get-TraceSource',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Gets the PowerShell components that are instrumented for tracing.'
   },
   {
@@ -800,28 +800,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Unique',
     name: 'Get-Unique',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('AsString,OnType'),
+    parameters: parseSpecificParamsFromNameList('InputObject,AsString,OnType'),
     description: 'Returns the unique items from a sorted list.'
   },
   {
     id: 'Get-Variable',
     name: 'Get-Variable',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('ValueOnly'),
+    parameters: parseSpecificParamsFromNameList('Name,ValueOnly'),
     description: 'Gets the variables in the current console.'
   },
   {
     id: 'Import-Alias',
     name: 'Import-Alias',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Imports an alias list from a file.'
   },
   {
     id: 'Import-Clixml',
     name: 'Import-Clixml',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('IncludeTotalCount,Skip,First'),
+    parameters: parseSpecificParamsFromNameList('Path,IncludeTotalCount,Skip,First'),
     description: 'Imports a CLIXML file and creates corresponding objects in PowerShell.'
   },
   {
@@ -835,7 +835,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Import-Module',
     name: 'Import-Module',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Global,Prefix,FullyQualifiedName,Assembly,Function,Cmdlet,Variable,Alias,AsCustomObject,MinimumVersion,MaximumVersion,RequiredVersion,ModuleInfo,ArgumentList,DisableNameChecking,NoClobber,PSSession,CimSession,CimResourceUri,CimNamespace'),
+    parameters: parseSpecificParamsFromNameList('Name,Global,Prefix,FullyQualifiedName,Assembly,Function,Cmdlet,Variable,Alias,AsCustomObject,MinimumVersion,MaximumVersion,RequiredVersion,ModuleInfo,ArgumentList,DisableNameChecking,NoClobber,PSSession,CimSession,CimResourceUri,CimNamespace'),
     description: 'Adds modules to the current session.'
   },
   {
@@ -849,49 +849,49 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Invoke-History',
     name: 'Invoke-History',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Id'),
     description: 'Runs commands from the session history.'
   },
   {
     id: 'Measure-Command',
     name: 'Measure-Command',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Expression'),
+    parameters: parseSpecificParamsFromNameList('Expression,InputObject'),
     description: 'Measures the time it takes to run script blocks and cmdlets.'
   },
   {
     id: 'New-Alias',
     name: 'New-Alias',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option'),
+    parameters: parseSpecificParamsFromNameList('Name,Value,Description,Option'),
     description: 'Creates a new alias.'
   },
   {
     id: 'New-Event',
     name: 'New-Event',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Sender,EventArguments,MessageData'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,Sender,EventArguments,MessageData'),
     description: 'Creates a new event.'
   },
   {
     id: 'New-EventLog',
     name: 'New-EventLog',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('CategoryResourceFile,LogName,MessageResourceFile,ParameterResourceFile'),
+    parameters: parseSpecificParamsFromNameList('LogName,Source,CategoryResourceFile,MessageResourceFile,ParameterResourceFile'),
     description: 'Creates a new event log and a new event source on a local or remote computer.'
   },
   {
     id: 'New-Module',
     name: 'New-Module',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('ScriptBlock,Function,Cmdlet,ReturnResult,AsCustomObject,ArgumentList'),
+    parameters: parseSpecificParamsFromNameList('Name,ScriptBlock,Function,Cmdlet,ReturnResult,AsCustomObject,ArgumentList'),
     description: 'Creates a new dynamic module that exists only in memory.'
   },
   {
     id: 'New-ModuleManifest',
     name: 'New-ModuleManifest',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('NestedModules,Guid,Author,CompanyName,Copyright,RootModule,ModuleVersion,ProcessorArchitecture,PowerShellVersion,ClrVersion,DotNetFrameworkVersion,PowerShellHostName,PowerShellHostVersion,RequiredModules,TypesToProcess,FormatsToProcess,ScriptsToProcess,RequiredAssemblies,FileList,ModuleList,FunctionsToExport,AliasesToExport,VariablesToExport,CmdletsToExport,DscResourcesToExport,CompatiblePSEditions,PrivateData,Tags,ProjectUri,LicenseUri,IconUri,ReleaseNotes,HelpInfoUri,DefaultCommandPrefix'),
+    parameters: parseSpecificParamsFromNameList('Path,NestedModules,Guid,Author,CompanyName,Copyright,RootModule,ModuleVersion,ProcessorArchitecture,PowerShellVersion,ClrVersion,DotNetFrameworkVersion,PowerShellHostName,PowerShellHostVersion,RequiredModules,TypesToProcess,FormatsToProcess,ScriptsToProcess,RequiredAssemblies,FileList,ModuleList,FunctionsToExport,AliasesToExport,VariablesToExport,CmdletsToExport,DscResourcesToExport,CompatiblePSEditions,PrivateData,Tags,ProjectUri,LicenseUri,IconUri,ReleaseNotes,HelpInfoUri,DefaultCommandPrefix'),
     description: 'Creates a new module manifest.'
   },
   {
@@ -905,14 +905,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'New-PSDrive',
     name: 'New-PSDrive',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('PSProvider,Root,Persist'),
+    parameters: parseSpecificParamsFromNameList('Name,PSProvider,Root,Description,Persist'),
     description: 'Creates a PowerShell drive.'
   },
   {
     id: 'New-Service',
     name: 'New-Service',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('BinaryPathName,StartupType,DependsOn'),
+    parameters: parseSpecificParamsFromNameList('Name,BinaryPathName,DisplayName,Description,StartupType,DependsOn'),
     description: 'Creates a new Windows service.'
   },
   {
@@ -926,49 +926,49 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'New-Variable',
     name: 'New-Variable',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option,Visibility'),
+    parameters: parseSpecificParamsFromNameList('Name,Value,Description,Option,Visibility'),
     description: 'Creates a new variable.'
   },
   {
     id: 'Out-Default',
     name: 'Out-Default',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Transcript'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Transcript'),
     description: 'Sends the output to the default formatter and to the host console.'
   },
   {
     id: 'Out-GridView',
     name: 'Out-GridView',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Title,Wait,OutputMode'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Title,Wait,OutputMode'),
     description: 'Sends output to an interactive table in a separate window.'
   },
   {
     id: 'Out-Host',
     name: 'Out-Host',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Paging'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Paging'),
     description: 'Sends output to the command line.'
   },
   {
     id: 'Out-Null',
     name: 'Out-Null',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('InputObject'),
     description: 'Deletes output instead of sending it to the console.'
   },
   {
     id: 'Out-Printer',
     name: 'Out-Printer',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('InputObject,Name'),
     description: 'Sends output to a printer.'
   },
   {
     id: 'Out-String',
     name: 'Out-String',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Stream,Width'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Stream,Width'),
     description: 'Sends objects to the host as a series of strings.'
   },
   {
@@ -982,49 +982,49 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Register-EngineEvent',
     name: 'Register-EngineEvent',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Action,MessageData,SupportEvent,Forward,MaxTriggerCount'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,Action,MessageData,SupportEvent,Forward,MaxTriggerCount'),
     description: 'Subscribes to events that are generated by the PowerShell engine and by the New-Event cmdlet.'
   },
   {
     id: 'Register-ObjectEvent',
     name: 'Register-ObjectEvent',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('EventName,Action,MessageData,SupportEvent,Forward,MaxTriggerCount'),
+    parameters: parseSpecificParamsFromNameList('InputObject,EventName,SourceIdentifier,Action,MessageData,SupportEvent,Forward,MaxTriggerCount'),
     description: 'Subscribes to the events that are generated by Microsoft .NET Framework objects.'
   },
   {
     id: 'Remove-Event',
     name: 'Remove-Event',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('EventIdentifier'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,EventIdentifier'),
     description: 'Deletes events from the PowerShell event queue.'
   },
   {
     id: 'Remove-Module',
     name: 'Remove-Module',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('FullyQualifiedName,ModuleInfo'),
+    parameters: parseSpecificParamsFromNameList('Name,FullyQualifiedName,ModuleInfo'),
     description: 'Removes modules from the current session.'
   },
   {
     id: 'Remove-PSDrive',
     name: 'Remove-PSDrive',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('LiteralName,PSProvider'),
+    parameters: parseSpecificParamsFromNameList('Name,LiteralName,PSProvider'),
     description: 'Removes a PowerShell drive.'
   },
   {
     id: 'Remove-TypeData',
     name: 'Remove-TypeData',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('TypeName,TypeData'),
+    parameters: parseSpecificParamsFromNameList('TypeName,TypeData,Path'),
     description: 'Deletes extended type data from the current session.'
   },
   {
     id: 'Remove-Variable',
     name: 'Remove-Variable',
     category: 'PowerShell Core & Scripting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Deletes a variable and its value.'
   },
   {
@@ -1038,7 +1038,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Set-Alias',
     name: 'Set-Alias',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option'),
+    parameters: parseSpecificParamsFromNameList('Name,Value,Description,Option'),
     description: 'Creates or changes an alias.'
   },
   {
@@ -1080,28 +1080,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Set-TimeZone',
     name: 'Set-TimeZone',
     category: 'PowerShell Core & Scripting',
-    parameters: [], // Name, Id, InputObject, PassThru are common
+    parameters: parseSpecificParamsFromNameList('Name,Id'), 
     description: 'Sets the system time zone to a specified time zone.'
   },
   {
     id: 'Set-TraceSource',
     name: 'Set-TraceSource',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option,ListenerOption,FilePath,Debugger,PSHost,RemoveListener,RemoveFileListener'),
+    parameters: parseSpecificParamsFromNameList('Name,Option,ListenerOption,FilePath,Debugger,PSHost,RemoveListener,RemoveFileListener'),
     description: 'Configures tracing for PowerShell components.'
   },
   {
     id: 'Set-Variable',
     name: 'Set-Variable',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option,Visibility'),
+    parameters: parseSpecificParamsFromNameList('Name,Value,Description,Option,Visibility'),
     description: 'Sets the value of a variable. Creates the variable if one with the same name does not exist.'
   },
   {
     id: 'Show-Command',
     name: 'Show-Command',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Height,Width,NoCommonParameter,ErrorPopup'),
+    parameters: parseSpecificParamsFromNameList('Name,Height,Width,NoCommonParameter,ErrorPopup'),
     description: 'Creates PowerShell commands in a command window.'
   },
   {
@@ -1122,7 +1122,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Trace-Command',
     name: 'Trace-Command',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Option,Expression,Command,ArgumentList,ListenerOption,FilePath,Debugger,PSHost'),
+    parameters: parseSpecificParamsFromNameList('Name,Option,Expression,Command,ArgumentList,ListenerOption,FilePath,Debugger,PSHost'),
     description: 'Configures and starts a trace of the specified expression or command.'
   },
   {
@@ -1136,7 +1136,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Unregister-Event',
     name: 'Unregister-Event',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('SubscriptionId'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,SubscriptionId'),
     description: 'Cancels an event subscription.'
   },
   {
@@ -1157,7 +1157,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Update-List',
     name: 'Update-List',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Add,Remove,Replace,Property'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Add,Remove,Replace,Property'),
     description: 'Adds items to or removes items from a collection.'
   },
   {
@@ -1185,7 +1185,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Wait-Event',
     name: 'Wait-Event',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Timeout'),
+    parameters: parseSpecificParamsFromNameList('SourceIdentifier,Timeout'),
     description: 'Waits until a particular event is raised before continuing to run.'
   },
   {
@@ -1213,21 +1213,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Write-Information',
     name: 'Write-Information',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('MessageData,Tags'),
+    parameters: parseSpecificParamsFromNameList('InformationRecord,MessageData,Tags'),
     description: 'Specifies how PowerShell handles information stream data for a command.'
   },
   {
     id: 'Write-Output',
     name: 'Write-Output',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('NoEnumerate'),
+    parameters: parseSpecificParamsFromNameList('InputObject,NoEnumerate'),
     description: 'Sends the specified objects to the next command in the pipeline.',
   },
   {
     id: 'Write-Progress',
     name: 'Write-Progress',
     category: 'PowerShell Core & Scripting',
-    parameters: parseSpecificParamsFromNameList('Activity,Status,PercentComplete,SecondsRemaining,CurrentOperation,ParentId,Completed,SourceId'),
+    parameters: parseSpecificParamsFromNameList('Activity,Status,Id,PercentComplete,SecondsRemaining,CurrentOperation,ParentId,Completed,SourceId'),
     description: 'Displays a progress bar within a PowerShell command window.'
   },
   {
@@ -1251,168 +1251,168 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Compare-Object',
     name: 'Compare-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('DifferenceObject,SyncWindow,ExcludeDifferent,IncludeEqual,Culture,CaseSensitive'),
+    parameters: parseSpecificParamsFromNameList('ReferenceObject,DifferenceObject,SyncWindow,ExcludeDifferent,IncludeEqual,Culture,CaseSensitive,Property'),
     description: 'Compares two sets of objects.'
   },
   {
     id: 'ConvertFrom-Csv',
     name: 'ConvertFrom-Csv',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Delimiter,UseCulture,Header'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Delimiter,UseCulture,Header'),
     description: 'Converts character-separated value (CSV) data into PSObject type objects.'
   },
   {
     id: 'ConvertFrom-Json',
     name: 'ConvertFrom-Json',
     category: 'Data Handling & Formatting',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('InputObject'),
     description: 'Converts a JSON-formatted string to a custom object.',
   },
   {
     id: 'ConvertFrom-String',
     name: 'ConvertFrom-String',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Delimiter,PropertyNames,TemplateFile,TemplateContent,IncludeExtent,UpdateTemplate'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Delimiter,PropertyNames,TemplateFile,TemplateContent,IncludeExtent,UpdateTemplate'),
     description: 'Formats a string by using a template.'
   },
   {
     id: 'ConvertFrom-StringData',
     name: 'ConvertFrom-StringData',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('StringData'),
+    parameters: parseSpecificParamsFromNameList('StringData,Delimiter'),
     description: 'Converts a string containing one or more key/value pairs to a hash table.'
   },
   {
     id: 'Convert-String',
     name: 'Convert-String',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Example'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Example'),
     description: 'Formats a string.'
   },
   {
     id: 'ConvertTo-Csv',
     name: 'ConvertTo-Csv',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Delimiter,UseCulture,NoTypeInformation'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Delimiter,UseCulture,NoTypeInformation'),
     description: 'Converts .NET objects into a series of character-separated value (CSV) strings.'
   },
   {
     id: 'ConvertTo-Html',
     name: 'ConvertTo-Html',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Body,Head,Title,As,CssUri,Fragment,PostContent,PreContent'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,Body,Head,Title,As,CssUri,Fragment,PostContent,PreContent'),
     description: 'Converts Microsoft .NET Framework objects into HTML that can be displayed in a Web browser.',
   },
   {
     id: 'ConvertTo-Json',
     name: 'ConvertTo-Json',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Depth,Compress'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Depth,Compress'),
     description: 'Converts an object to a JSON-formatted string.',
   },
   {
     id: 'ConvertTo-Xml',
     name: 'ConvertTo-Xml',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Depth,NoTypeInformation,As'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Depth,NoTypeInformation,As'),
     description: 'Creates an XML-based representation of an object or objects.',
   },
   {
     id: 'Export-Csv',
     name: 'Export-Csv',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('NoClobber,Encoding,Append,Delimiter,UseCulture,NoTypeInformation'),
+    parameters: parseSpecificParamsFromNameList('Path,InputObject,NoClobber,Encoding,Append,Delimiter,UseCulture,NoTypeInformation'),
     description: 'Converts objects into a series of comma-separated value (CSV) strings and saves them in a CSV file.',
   },
   {
     id: 'Format-Custom',
     name: 'Format-Custom',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Depth,GroupBy,View,ShowError,DisplayError,Expand'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,Depth,GroupBy,View,ShowError,DisplayError,Expand'),
     description: 'Uses a custom view to format the output.'
   },
   {
     id: 'Format-List',
     name: 'Format-List',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('GroupBy,View,ShowError,DisplayError,Expand'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,GroupBy,View,ShowError,DisplayError,Expand'),
     description: 'Formats the output as a list of properties in which each property is displayed on a separate line.'
   },
   {
     id: 'Format-Table',
     name: 'Format-Table',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('AutoSize,RepeatHeader,HideTableHeaders,Wrap,GroupBy,View,ShowError,DisplayError,Expand'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,AutoSize,RepeatHeader,HideTableHeaders,Wrap,GroupBy,View,ShowError,DisplayError,Expand'),
     description: 'Formats the output as a table.'
   },
   {
     id: 'Format-Wide',
     name: 'Format-Wide',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('AutoSize,Column,GroupBy,View,ShowError,DisplayError'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,AutoSize,Column,GroupBy,View,ShowError,DisplayError'),
     description: 'Formats objects as a wide table that displays only one property of each object.'
   },
   {
     id: 'Group-Object',
     name: 'Group-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('NoElement,AsHashTable,AsString,Culture,CaseSensitive'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,NoElement,AsHashTable,AsString,Culture,CaseSensitive'),
     description: 'Groups objects that contain the same value for specified properties.'
   },
   {
     id: 'Import-Csv',
     name: 'Import-Csv',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Delimiter,UseCulture,Header,Encoding'),
+    parameters: parseSpecificParamsFromNameList('Path,Delimiter,UseCulture,Header,Encoding'),
     description: 'Creates table-like custom objects from the items in a CSV file.',
   },
   {
     id: 'Measure-Object',
     name: 'Measure-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Sum,Average,Maximum,Minimum,Line,Word,Character,IgnoreWhiteSpace'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,Sum,Average,Maximum,Minimum,Line,Word,Character,IgnoreWhiteSpace'),
     description: 'Calculates the numeric properties of objects, and the characters, words, and lines in string objects.',
   },
   {
     id: 'Select-Object',
     name: 'Select-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('ExcludeProperty,ExpandProperty,Unique,Last,First,Skip,SkipLast,Wait,Index'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,ExcludeProperty,ExpandProperty,Unique,Last,First,Skip,SkipLast,Wait,Index'),
     description: 'Selects objects or object properties.',
   },
   {
     id: 'Select-String',
     name: 'Select-String',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Pattern,SimpleMatch,CaseSensitive,Quiet,List,NotMatch,AllMatches,Encoding,Context'),
+    parameters: parseSpecificParamsFromNameList('Path,Pattern,SimpleMatch,CaseSensitive,Quiet,List,NotMatch,AllMatches,Encoding,Context,InputObject'),
     description: 'Finds text in strings and files.'
   },
   {
     id: 'Select-Xml',
     name: 'Select-Xml',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Xml,Content,XPath,Namespace'),
+    parameters: parseSpecificParamsFromNameList('Path,Xml,Content,XPath,Namespace'),
     description: 'Finds text in an XML string or document.'
   },
   {
     id: 'Sort-Object',
     name: 'Sort-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('Descending,Unique,Culture,CaseSensitive'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,Descending,Unique,Culture,CaseSensitive'),
     description: 'Sorts objects by property values.',
   },
   {
     id: 'Tee-Object',
     name: 'Tee-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('FilePath,Append,Variable'),
+    parameters: parseSpecificParamsFromNameList('InputObject,FilePath,Append,Variable'),
     description: 'Saves command output in a file or variable and also sends it down the pipeline.'
   },
   {
     id: 'Where-Object',
     name: 'Where-Object',
     category: 'Data Handling & Formatting',
-    parameters: parseSpecificParamsFromNameList('FilterScript,EQ,CEQ,NE,CNE,GT,CGT,LT,CLT,GE,CGE,LE,CLE,Like,CLike,NotLike,CNotLike,Match,CMatch,NotMatch,CMatch,Contains,CContains,NotContains,CNotContains,In,CIn,NotIn,CNotIn,Is,IsNot'),
+    parameters: parseSpecificParamsFromNameList('InputObject,Property,FilterScript,EQ,CEQ,NE,CNE,GT,CGT,LT,CLT,GE,CGE,LE,CLE,Like,CLike,NotLike,CNotLike,Match,CMatch,NotMatch,CMatch,Contains,CContains,NotContains,CNotContains,In,CIn,NotIn,CNotIn,Is,IsNot'),
     description: 'Selects objects from a collection based on their property values.'
   },
 
@@ -1422,14 +1422,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Connect-PSSession',
     name: 'Connect-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,ApplicationName,ConfigurationName,ConnectionUri,AllowRedirection,InstanceId,Authentication,CertificateThumbprint,Port,UseSSL,SessionOption,ThrottleLimit'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,ApplicationName,ConfigurationName,ConnectionUri,AllowRedirection,InstanceId,Authentication,CertificateThumbprint,Port,UseSSL,SessionOption,ThrottleLimit'),
     description: 'Reconnects to user-managed PowerShell sessions (PSSessions) that are disconnected.'
   },
   {
     id: 'Connect-WSMan',
     name: 'Connect-WSMan',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,Authentication,Port,SessionOption,SSL,ConnectionURI,OptionSet,ExtendedConnect,Locale,UILocale,Impersonation'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,Authentication,Port,SessionOption,SSL,ConnectionURI,OptionSet,ExtendedConnect,Locale,UILocale,Impersonation'),
     description: 'Connects to the WinRM service on a remote computer.'
   },
   {
@@ -1443,7 +1443,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Disable-PSSessionConfiguration',
     name: 'Disable-PSSessionConfiguration',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('NoServiceRestart'),
+    parameters: parseSpecificParamsFromNameList('Name,NoServiceRestart'),
     description: 'Disables the session configurations on the computer.'
   },
   {
@@ -1457,14 +1457,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Disconnect-PSSession',
     name: 'Disconnect-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,IdleTimeoutSec,OutputBufferingMode,ThrottleLimit,InstanceId'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,IdleTimeoutSec,OutputBufferingMode,ThrottleLimit,InstanceId'),
     description: 'Disconnects from a PowerShell session (PSSession).'
   },
   {
     id: 'Disconnect-WSMan',
     name: 'Disconnect-WSMan',
     category: 'Networking',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('ComputerName'),
     description: 'Disconnects from the WinRM service on a remote computer.'
   },
   {
@@ -1478,7 +1478,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Enable-PSSessionConfiguration',
     name: 'Enable-PSSessionConfiguration',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('SecurityDescriptorSddl,SkipNetworkProfileCheck,NoServiceRestart'),
+    parameters: parseSpecificParamsFromNameList('Name,SecurityDescriptorSddl,SkipNetworkProfileCheck,NoServiceRestart'),
     description: 'Enables the session configurations that have been disabled.'
   },
   {
@@ -1492,7 +1492,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Enter-PSSession',
     name: 'Enter-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,ConnectionUri,InstanceId,EnableNetworkAccess,VMId,VMName,ContainerId,ConfigurationName,RunAsAdministrator,Port,UseSSL,ApplicationName,AllowRedirection,SessionOption,Authentication,CertificateThumbprint'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,ConnectionUri,InstanceId,EnableNetworkAccess,VMId,VMName,ContainerId,ConfigurationName,RunAsAdministrator,Port,UseSSL,ApplicationName,AllowRedirection,SessionOption,Authentication,CertificateThumbprint'),
     description: 'Starts an interactive session with a remote computer.'
   },
   {
@@ -1513,21 +1513,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-PSSession',
     name: 'Get-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,ConnectionUri,ConfigurationName,AllowRedirection,InstanceId,Authentication,CertificateThumbprint,Port,UseSSL,ThrottleLimit,State,SessionOption,ContainerId,VMId,VMName'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,ConnectionUri,ConfigurationName,AllowRedirection,InstanceId,Authentication,CertificateThumbprint,Port,UseSSL,ThrottleLimit,State,SessionOption,ContainerId,VMId,VMName,Id'),
     description: 'Gets the PowerShell sessions (PSSessions) in the current session.'
   },
   {
     id: 'Get-PSSessionCapability',
     name: 'Get-PSSessionCapability',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ConfigurationName,Username,Full'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ConfigurationName,Username,Full'),
     description: 'Gets the capabilities of a specific user on a constrained remoting endpoint.'
   },
   {
     id: 'Get-PSSessionConfiguration',
     name: 'Get-PSSessionConfiguration',
     category: 'Networking',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name,ApplicationBase'),
     description: 'Gets the registered session configurations on the computer.'
   },
   {
@@ -1541,7 +1541,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-WSManInstance',
     name: 'Get-WSManInstance',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,ConnectionURI,Dialect,Enumerate,OptionSet,Port,ResourceURI,SessionOption,Shallow,IncludeClassOrigin,IncludeQualifiers,IncludeSystemProperties,SelectorSet,SSL,AssociationFilter,AssociationSourceFilter,ResultClass,ExcludeProperty,Authentication,Fragment,FilePath'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,ConnectionURI,Dialect,Enumerate,OptionSet,Port,ResourceURI,SessionOption,Shallow,IncludeClassOrigin,IncludeQualifiers,IncludeSystemProperties,SelectorSet,SSL,AssociationFilter,AssociationSourceFilter,ResultClass,ExcludeProperty,Authentication,Fragment,FilePath'),
     description: 'Displays management information for a resource instance.'
   },
   {
@@ -1555,7 +1555,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Invoke-Command',
     name: 'Invoke-Command',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,Port,UseSSL,ConfigurationName,ApplicationName,ThrottleLimit,ConnectionUri,InDisconnectedSession,SessionName,HideComputerName,JobName,ScriptBlock,NoNewScope,FilePath,AllowRedirection,SessionOption,Authentication,EnableNetworkAccess,RunAsAdministrator,ArgumentList,VMId,VMName,ContainerId,CertificateThumbprint'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,Port,UseSSL,ConfigurationName,ApplicationName,ThrottleLimit,ConnectionUri,InDisconnectedSession,SessionName,HideComputerName,JobName,ScriptBlock,NoNewScope,FilePath,AllowRedirection,SessionOption,Authentication,EnableNetworkAccess,RunAsAdministrator,ArgumentList,VMId,VMName,ContainerId,CertificateThumbprint'),
     description: 'Runs commands on local and remote computers.'
   },
   {
@@ -1576,21 +1576,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Invoke-WSManAction',
     name: 'Invoke-WSManAction',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Action,ApplicationName,ConnectionURI,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Locale,UILocale,Impersonation,Fragment'),
+    parameters: parseSpecificParamsFromNameList('Action,ApplicationName,ConnectionURI,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Locale,UILocale,Impersonation,Fragment,ComputerName'),
     description: 'Invokes an action on the object that is specified by the Resource URI and by the selectors.'
   },
   {
     id: 'New-PSSession',
     name: 'New-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,EnableNetworkAccess,ConfigurationName,VMId,VMName,ContainerId,RunAsAdministrator,Port,UseSSL,ApplicationName,ThrottleLimit,ConnectionUri,AllowRedirection,SessionOption,Authentication,CertificateThumbprint'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Name,Session,EnableNetworkAccess,ConfigurationName,VMId,VMName,ContainerId,RunAsAdministrator,Port,UseSSL,ApplicationName,ThrottleLimit,ConnectionUri,AllowRedirection,SessionOption,Authentication,CertificateThumbprint'),
     description: 'Creates a persistent connection to a local or remote computer.'
   },
   {
     id: 'New-PSSessionConfigurationFile',
     name: 'New-PSSessionConfigurationFile',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('SchemaVersion,Guid,Author,CompanyName,Copyright,SessionType,TranscriptDirectory,RunAsVirtualAccount,RunAsVirtualAccountGroups,MountUserDrive,UserDriveMaximumSize,GroupManagedServiceAccount,ScriptsToProcess,RoleDefinitions,RequiredGroups,LanguageMode,ExecutionPolicy,PowerShellVersion,ModulesToImport,VisibleAliases,VisibleCmdlets,VisibleFunctions,VisibleExternalCommands,VisibleProviders,AliasDefinitions,FunctionDefinitions,VariableDefinitions,EnvironmentVariables,TypesToProcess,FormatsToProcess,AssembliesToLoad,Full'),
+    parameters: parseSpecificParamsFromNameList('Path,SchemaVersion,Guid,Author,CompanyName,Copyright,SessionType,TranscriptDirectory,RunAsVirtualAccount,RunAsVirtualAccountGroups,MountUserDrive,UserDriveMaximumSize,GroupManagedServiceAccount,ScriptsToProcess,RoleDefinitions,RequiredGroups,LanguageMode,ExecutionPolicy,PowerShellVersion,ModulesToImport,VisibleAliases,VisibleCmdlets,VisibleFunctions,VisibleExternalCommands,VisibleProviders,AliasDefinitions,FunctionDefinitions,VariableDefinitions,EnvironmentVariables,TypesToProcess,FormatsToProcess,AssembliesToLoad,Full'),
     description: 'Creates a file that defines a session configuration.'
   },
   {
@@ -1618,7 +1618,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'New-WSManInstance',
     name: 'New-WSManInstance',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Fragment'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Fragment'),
     description: 'Creates a new instance of a management resource.'
   },
   {
@@ -1632,35 +1632,35 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Receive-PSSession',
     name: 'Receive-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,ApplicationName,ConfigurationName,ConnectionUri,AllowRedirection,InstanceId,OutTarget,JobName,Authentication,CertificateThumbprint,Port,UseSSL,SessionOption'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,ApplicationName,ConfigurationName,ConnectionUri,AllowRedirection,InstanceId,OutTarget,JobName,Authentication,CertificateThumbprint,Port,UseSSL,SessionOption,Id'),
     description: 'Gets the results of commands that are running in a disconnected session.'
   },
   {
     id: 'Register-PSSessionConfiguration',
     name: 'Register-PSSessionConfiguration',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ProcessorArchitecture,SessionType,AssemblyName,ApplicationBase,ConfigurationTypeName,RunAsCredential,ThreadApartmentState,ThreadOptions,AccessMode,UseSharedProcess,StartupScript,MaximumReceivedDataSizePerCommandMB,MaximumReceivedObjectSizeMB,SecurityDescriptorSddl,ShowSecurityDescriptorUI,NoServiceRestart,PSVersion,SessionTypeOption,TransportOption,ModulesToImport'),
+    parameters: parseSpecificParamsFromNameList('Name,ProcessorArchitecture,SessionType,AssemblyName,ApplicationBase,ConfigurationTypeName,RunAsCredential,ThreadApartmentState,ThreadOptions,AccessMode,UseSharedProcess,StartupScript,MaximumReceivedDataSizePerCommandMB,MaximumReceivedObjectSizeMB,SecurityDescriptorSddl,ShowSecurityDescriptorUI,NoServiceRestart,PSVersion,SessionTypeOption,TransportOption,ModulesToImport'),
     description: 'Creates and registers a new session configuration.'
   },
   {
     id: 'Remove-PSSession',
     name: 'Remove-PSSession',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Session,ContainerId,VMId,VMName,InstanceId'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,Session,ContainerId,VMId,VMName,InstanceId,Id'),
     description: 'Closes one or more PowerShell sessions (PSSessions).'
   },
   {
     id: 'Remove-WSManInstance',
     name: 'Remove-WSManInstance',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,Authentication,Fragment'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,Authentication,Fragment'),
     description: 'Deletes a management resource instance.'
   },
   {
     id: 'Resolve-DnsName',
     name: 'Resolve-DnsName',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('Type,Server,DnsOnly,CacheOnly,NoHostsFile'),
+    parameters: parseSpecificParamsFromNameList('Name,Type,Server,DnsOnly,CacheOnly,NoHostsFile'),
     description: 'Performs a DNS query for the specified name.',
   },
   {
@@ -1674,14 +1674,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Set-PSSessionConfiguration',
     name: 'Set-PSSessionConfiguration',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('AssemblyName,ApplicationBase,ConfigurationTypeName,RunAsCredential,ThreadApartmentState,ThreadOptions,AccessMode,UseSharedProcess,StartupScript,MaximumReceivedDataSizePerCommandMB,MaximumReceivedObjectSizeMB,SecurityDescriptorSddl,ShowSecurityDescriptorUI,NoServiceRestart,PSVersion,SessionTypeOption,TransportOption,ModulesToImport'),
+    parameters: parseSpecificParamsFromNameList('Name,AssemblyName,ApplicationBase,ConfigurationTypeName,RunAsCredential,ThreadApartmentState,ThreadOptions,AccessMode,UseSharedProcess,StartupScript,MaximumReceivedDataSizePerCommandMB,MaximumReceivedObjectSizeMB,SecurityDescriptorSddl,ShowSecurityDescriptorUI,NoServiceRestart,PSVersion,SessionTypeOption,TransportOption,ModulesToImport'),
     description: 'Changes the properties of a registered session configuration.'
   },
   {
     id: 'Set-WSManInstance',
     name: 'Set-WSManInstance',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Fragment'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,ConnectionURI,Dialect,FilePath,OptionSet,Port,ResourceURI,SelectorSet,SessionOption,SSL,ValueSet,Authentication,Fragment'),
     description: 'Modifies the management information that is related to a resource.'
   },
   {
@@ -1695,28 +1695,28 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Test-Connection',
     name: 'Test-Connection',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('DcomAuthentication,WsmanAuthentication,Protocol,BufferSize,Count,Source,Impersonation,ThrottleLimit,TimeToLive,Delay,Quiet'),
+    parameters: parseSpecificParamsFromNameList('TargetName,DcomAuthentication,WsmanAuthentication,Protocol,BufferSize,Count,Source,Impersonation,ThrottleLimit,TimeToLive,Delay,Quiet'),
     description: 'Sends ICMP echo request packets ("pings") to one or more remote computers.',
   },
   {
     id: 'Test-PSSessionConfigurationFile',
     name: 'Test-PSSessionConfigurationFile',
     category: 'Networking',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Verifies the keys and values in a session configuration file.'
   },
   {
     id: 'Test-WSMan',
     name: 'Test-WSMan',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('ApplicationName,Authentication,Port,ConnectionURI'),
+    parameters: parseSpecificParamsFromNameList('ComputerName,ApplicationName,Authentication,Port,ConnectionURI'),
     description: 'Tests whether the WinRM service is running on a local or remote computer.'
   },
   {
     id: 'Unregister-PSSessionConfiguration',
     name: 'Unregister-PSSessionConfiguration',
     category: 'Networking',
-    parameters: parseSpecificParamsFromNameList('NoServiceRestart'),
+    parameters: parseSpecificParamsFromNameList('Name,NoServiceRestart'),
     description: 'Deletes registered session configurations from the computer.'
   },
 
@@ -1739,7 +1739,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-Acl',
     name: 'Get-Acl',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('Audit'),
+    parameters: parseSpecificParamsFromNameList('Path,Audit'),
     description: 'Gets the security descriptor for a resource, such as a file or registry key.',
   },
   {
@@ -1753,7 +1753,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-CmsMessage',
     name: 'Get-CmsMessage',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('Content'),
+    parameters: parseSpecificParamsFromNameList('Path,Content'),
     description: 'Gets content that has been encrypted by using the Cryptographic Message Syntax format.'
   },
   {
@@ -1774,21 +1774,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-PfxData',
     name: 'Get-PfxData',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('Password,ProtectTo'),
+    parameters: parseSpecificParamsFromNameList('Path,Password,ProtectTo'),
     description: 'Extracts information from PFX certificate files.'
   },
   {
     id: 'Protect-CmsMessage',
     name: 'Protect-CmsMessage',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('To,Content,OutFile,Algorithm,SecureString'),
+    parameters: parseSpecificParamsFromNameList('To,Content,Path,OutFile,Algorithm,SecureString'),
     description: 'Encrypts content by using the Cryptographic Message Syntax format.'
   },
   {
     id: 'Set-Acl',
     name: 'Set-Acl',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('AclObject,ClearCentralAccessPolicy'),
+    parameters: parseSpecificParamsFromNameList('Path,AclObject,ClearCentralAccessPolicy'),
     description: 'Changes the security descriptor of a specified item, such as a file or a registry key.',
   },
   {
@@ -1809,7 +1809,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Unprotect-CmsMessage',
     name: 'Unprotect-CmsMessage',
     category: 'Security',
-    parameters: parseSpecificParamsFromNameList('To,Content,OutFile,EventMessage,IncludeContext,Unprotect'),
+    parameters: parseSpecificParamsFromNameList('Path,To,Content,OutFile,EventMessage,IncludeContext,Unprotect'),
     description: 'Decrypts content that has been encrypted using the Cryptographic Message Syntax format.'
   },
 
@@ -1818,14 +1818,14 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Add-AppxPackage',
     name: 'Add-AppxPackage',
     category: 'Application Management',
-    parameters: parseSpecificParamsFromNameList('DependencyPath,Register,DisableDevelopmentMode,ForceApplicationShutdown,ForceTargetApplicationShutdown,ForceUpdateFromAnyVersion,InstallAllResources,PackageFamilyName,RequiredContentGroupOnly,RetainFilesOnFailure,StageInPlace,StubPackageOption,UpdateIfFound,Volume'),
+    parameters: parseSpecificParamsFromNameList('Path,DependencyPath,Register,DisableDevelopmentMode,ForceApplicationShutdown,ForceTargetApplicationShutdown,ForceUpdateFromAnyVersion,InstallAllResources,PackageFamilyName,RequiredContentGroupOnly,RetainFilesOnFailure,StageInPlace,StubPackageOption,UpdateIfFound,Volume'),
     description: 'Adds a signed app package to a user account.',
   },
   {
     id: 'Get-AppxPackage',
     name: 'Get-AppxPackage',
     category: 'Application Management',
-    parameters: parseSpecificParamsFromNameList('Publisher,AllUsers,User'),
+    parameters: parseSpecificParamsFromNameList('Name,Publisher,AllUsers,User'),
     description: 'Gets a list of the app packages that are installed in a user profile.',
   },
   {
@@ -1841,56 +1841,56 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Get-VM',
     name: 'Get-VM',
     category: 'Hyper-V',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name,Id,ComputerName'),
     description: 'Gets the virtual machines from one or more Hyper-V hosts.',
   },
   {
     id: 'New-VM',
     name: 'New-VM',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('MemoryStartupBytes,BootDevice,VHDPath,SwitchName,Generation'),
+    parameters: parseSpecificParamsFromNameList('Name,MemoryStartupBytes,BootDevice,VHDPath,Path,SwitchName,Generation,ComputerName'),
     description: 'Creates a new virtual machine.'
   },
   {
     id: 'Remove-VM',
     name: 'Remove-VM',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VM'),
+    parameters: parseSpecificParamsFromNameList('Name,Id,VM,ComputerName'),
     description: 'Deletes a virtual machine.'
   },
   {
     id: 'Start-VM',
     name: 'Start-VM',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VM'),
+    parameters: parseSpecificParamsFromNameList('Name,Id,VM,ComputerName'),
     description: 'Starts a virtual machine.',
   },
   {
     id: 'Stop-VM',
     name: 'Stop-VM',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VM,TurnOff,Save'),
+    parameters: parseSpecificParamsFromNameList('Name,Id,VM,TurnOff,Save,ComputerName'),
     description: 'Shuts down, turns off, or saves a virtual machine.',
   },
   {
     id: 'Checkpoint-VM',
     name: 'Checkpoint-VM',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VM,SnapshotName'),
+    parameters: parseSpecificParamsFromNameList('Name,Id,VM,SnapshotName,ComputerName'),
     description: 'Creates a checkpoint of a virtual machine.'
   },
   {
     id: 'Get-VMSnapshot',
     name: 'Get-VMSnapshot',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VMName,SnapshotType'),
+    parameters: parseSpecificParamsFromNameList('VMName,Name,Id,SnapshotType,ComputerName'),
     description: 'Gets the checkpoints of a virtual machine or a checkpoint.'
   },
   {
     id: 'Restore-VMSnapshot',
     name: 'Restore-VMSnapshot',
     category: 'Hyper-V',
-    parameters: parseSpecificParamsFromNameList('VMName'),
+    parameters: parseSpecificParamsFromNameList('VMName,Name,Id,ComputerName'),
     description: 'Restores a virtual machine checkpoint.'
   },
   
@@ -1901,7 +1901,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Test-ModuleManifest',
     name: 'Test-ModuleManifest',
     category: 'Module Management',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Path'),
     description: 'Verifies that a module manifest file accurately describes the contents of a module.'
   },
 
@@ -1910,21 +1910,21 @@ export const mockCommands: BasePowerShellCommand[] = [
     id: 'Add-PSSnapin',
     name: 'Add-PSSnapin',
     category: 'PowerShell Snap-ins',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Adds one or more Windows PowerShell snap-ins to the current session.'
   },
   {
     id: 'Get-PSSnapin',
     name: 'Get-PSSnapin',
     category: 'PowerShell Snap-ins',
-    parameters: parseSpecificParamsFromNameList('Registered'),
+    parameters: parseSpecificParamsFromNameList('Name,Registered'),
     description: 'Gets the Windows PowerShell snap-ins on the computer.'
   },
   {
     id: 'Remove-PSSnapin',
     name: 'Remove-PSSnapin',
     category: 'PowerShell Snap-ins',
-    parameters: [],
+    parameters: parseSpecificParamsFromNameList('Name'),
     description: 'Removes Windows PowerShell snap-ins from the current session.'
   },
   // Export-PSSession is already in Networking
@@ -1932,3 +1932,4 @@ export const mockCommands: BasePowerShellCommand[] = [
 
 // This list might be needed in ParameterEditDialog as well, ensure it's consistent or imported.
 export const COMMON_PARAMETERS_LIST_FOR_DIALOG: { name: string }[] = COMMON_POWERHSHELL_PARAMETERS.map(name => ({name}));
+
