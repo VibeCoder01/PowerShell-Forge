@@ -17,28 +17,51 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
     if (el.type === 'raw') {
       return el.content;
     }
-    // el.type === 'command'
+    // el.type === 'command' (this now includes comments)
     const commandElement = el as ScriptPowerShellCommand;
+
+    if (commandElement.baseCommandId === 'internal-add-comment') {
+      const commentText = commandElement.parameterValues['CommentText'] || '';
+      // Ensure each line of a multi-line comment input starts with #
+      return commentText.split('\\n').map(line => `# ${line}`).join('\\n');
+    }
+
     const paramsString = commandElement.parameters
       .map(param => {
         const value = commandElement.parameterValues[param.name];
         // Only include parameter if value is not empty or undefined
-        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : ''; // Basic quoting, PowerShell uses backtick to escape quotes
+        // Basic quoting, PowerShell uses backtick to escape quotes within double-quoted strings
+        return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : ''; 
       })
       .filter(Boolean) // Remove empty strings
       .join(' ');
     return `${commandElement.name}${paramsString ? ' ' + paramsString : ''}`;
-  }).join('\n');
+  }).join('\\n');
 }
 
 // Helper function to parse plain text script into RawScriptLine[]
-function parseTextToRawScriptLines(text: string): RawScriptLine[] {
+// Future: This could be enhanced to parse comments back into comment command objects.
+function parseTextToRawScriptLines(text: string): ScriptElement[] {
   if (!text || typeof text !== 'string') return [];
-  return text.split('\n').map(line => ({
-    instanceId: generateUniqueId(),
-    type: 'raw',
-    content: line,
-  }));
+  return text.split('\\n').map(line => {
+    // Basic check if it's a comment, convert to our comment command structure
+    // This is a simplified approach. For robust parsing, a more complex parser would be needed.
+    if (line.trim().startsWith('#')) {
+      return {
+        instanceId: generateUniqueId(),
+        type: 'command',
+        name: 'Comment', // Matches the name in mock-commands.ts
+        baseCommandId: 'internal-add-comment',
+        parameters: [{ name: 'CommentText' }],
+        parameterValues: { 'CommentText': line.trim().substring(1).trim() } // Store text without leading #
+      } as ScriptPowerShellCommand;
+    }
+    return {
+      instanceId: generateUniqueId(),
+      type: 'raw',
+      content: line,
+    } as RawScriptLine;
+  });
 }
 
 
@@ -55,7 +78,6 @@ export default function PowerShellForgePage() {
   useEffect(() => {
     setMockCommands(initialMockCommands);
     
-    // Load custom commands from localStorage
     const savedCustomCommands = localStorage.getItem('powershellForge_customCommands');
     if (savedCustomCommands) {
       try {
@@ -75,14 +97,20 @@ export default function PowerShellForgePage() {
       const savedData = localStorage.getItem(key);
       if (savedData) {
         try {
-          const parsed = JSON.parse(savedData);
-          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type)) {
+          const parsed = JSON.parse(savedData) as ScriptElement[];
+          // Validate structure more carefully
+          if (Array.isArray(parsed) && parsed.every(el => el.instanceId && el.type && 
+            (el.type === 'raw' || (el.type === 'command' && (el as ScriptPowerShellCommand).baseCommandId))
+          )) {
             setter(parsed);
-          } else if (typeof savedData === 'string') { 
+          } else if (typeof savedData === 'string' && !savedData.startsWith('[')) { // Heuristic: if not JSON array, treat as plain text
             setter(parseTextToRawScriptLines(savedData));
           }
         } catch (e) { 
-          setter(parseTextToRawScriptLines(savedData));
+          // If JSON parsing fails, assume it might be plain text from an older version or manual edit
+          if (typeof savedData === 'string') {
+            setter(parseTextToRawScriptLines(savedData));
+          }
         }
       }
     };
@@ -139,7 +167,7 @@ export default function PowerShellForgePage() {
 
   const handleLoadScript = (type: ScriptType, textContent: string) => {
     scriptElementSetters[type](parseTextToRawScriptLines(textContent));
-    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded successfully. Each line is treated as raw text.` });
+    toast({ title: 'Script Loaded', description: `${type.charAt(0).toUpperCase() + type.slice(1)} script loaded. Comments starting with '#' are parsed as editable comment objects.` });
   };
 
   const handleSaveAllScripts = () => {
@@ -241,4 +269,3 @@ export default function PowerShellForgePage() {
     </div>
   );
 }
-

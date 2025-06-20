@@ -1,9 +1,11 @@
+
 'use client';
 
 import type { ScriptPowerShellCommand } from '@/types/powershell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { MessageSquareText } from 'lucide-react'; // For comment icon
 
 interface ScriptCommandChipProps {
   command: ScriptPowerShellCommand;
@@ -12,6 +14,35 @@ interface ScriptCommandChipProps {
 }
 
 export function ScriptCommandChip({ command, onClick, hasUnsetParameters }: ScriptCommandChipProps) {
+  if (command.baseCommandId === 'internal-add-comment') {
+    const commentText = command.parameterValues['CommentText'] || '';
+    const displayComment = commentText.length > 60 ? commentText.substring(0, 57) + '...' : commentText;
+    
+    return (
+      <Button
+        variant="outline"
+        className={cn(
+          "flex-grow h-auto py-1.5 px-2.5 text-left justify-start items-center shadow-sm hover:shadow-md w-full",
+          "border-muted-foreground/30 hover:border-muted-foreground/70 bg-card/50",
+          hasUnsetParameters && !commentText ? "border-amber-500 hover:border-amber-600" : "" // Highlight if comment is empty
+        )}
+        onClick={onClick}
+        aria-label={`Edit comment: ${commentText}`}
+      >
+        <div className="flex items-center gap-1.5 w-full">
+          <MessageSquareText className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className={cn(
+            "font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words",
+            !commentText ? "italic" : ""
+          )}>
+            {displayComment || "Empty comment. Click to edit."}
+          </span>
+        </div>
+      </Button>
+    );
+  }
+
+  // Original rendering for other commands
   return (
     <Button
       variant="outline"
