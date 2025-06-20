@@ -168,7 +168,7 @@ export function ScriptEditorColumn({
 
     // Adding to top level
     const newElements = [...elements];
-    if (targetId && position !== 'inside') {
+    if (targetId && position !== 'inside' && targetId !== 'column-end') {
       const targetIndex = newElements.findIndex(el => el.instanceId === targetId);
       if (targetIndex !== -1) {
         newElements.splice(position === 'before' ? targetIndex : targetIndex + 1, 0, newElement);

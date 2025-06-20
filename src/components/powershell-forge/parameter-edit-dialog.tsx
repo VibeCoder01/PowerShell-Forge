@@ -86,7 +86,7 @@ export function ParameterEditDialog({
         const loopCmd = command as LoopScriptElement;
         if (loopCmd.baseCommandId === 'internal-foreach-loop') {
             initialValues['ItemVariable'] = initialValues['ItemVariable'] || 'item'; // Default to 'item'
-            initialValues['InputObject'] = initialValues['InputObject'] || '';
+            initialValues['InputObject'] = initialValues['InputObject'] || '$collection';
         } else if (loopCmd.baseCommandId === 'internal-for-loop') {
             initialValues['Initializer'] = initialValues['Initializer'] || '$i = 0';
             initialValues['Condition'] = initialValues['Condition'] || '$i -lt 10';

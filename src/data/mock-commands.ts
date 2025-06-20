@@ -57,7 +57,7 @@ export const mockCommands: BasePowerShellCommand[] = [
     category: 'Looping Constructs',
     parameters: [
       { name: 'InputObject' }, // e.g., $myArray, (Get-Service)
-      { name: 'ItemVariable' },  // e.g., item (becomes $item), defaults to $_
+      { name: 'ItemVariable' },  // e.g., item (becomes $item), defaults to 'item'
     ],
     description: 'Iterates over a collection of items (ForEach-Object).',
     isLoop: true,

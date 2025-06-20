@@ -130,13 +130,13 @@ function processLoadedElementsRecursive(elements: any[] | undefined): ScriptElem
         const defaultValues: { [key: string]: string } = {};
         if (newEl.baseCommandId === 'internal-foreach-loop') {
           defaultValues['ItemVariable'] = newEl.parameterValues?.['ItemVariable'] || 'item';
-          defaultValues['InputObject'] = newEl.parameterValues?.['InputObject'] || '';
+          defaultValues['InputObject'] = newEl.parameterValues?.['InputObject'] || '$collection';
         } else if (newEl.baseCommandId === 'internal-for-loop') {
-          defaultValues['Initializer'] = newEl.parameterValues?.['Initializer'] || '';
-          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '';
-          defaultValues['Iterator'] = newEl.parameterValues?.['Iterator'] || '';
+          defaultValues['Initializer'] = newEl.parameterValues?.['Initializer'] || '$i = 0';
+          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$i -lt 10';
+          defaultValues['Iterator'] = newEl.parameterValues?.['Iterator'] || '$i++';
         } else if (newEl.baseCommandId === 'internal-while-loop') {
-          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '';
+          defaultValues['Condition'] = newEl.parameterValues?.['Condition'] || '$true';
         }
         newEl.parameterValues = { ...defaultValues, ...newEl.parameterValues };
       }

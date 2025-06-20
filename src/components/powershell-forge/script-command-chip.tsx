@@ -72,18 +72,19 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
     );
   } else if (isLoopContainer && command.type === 'loop') {
     const loopElement = command as LoopScriptElement;
-    let Icon = Repeat;
+    let Icon = Repeat; // Default for ForEach
     if (loopElement.baseCommandId === 'internal-for-loop') Icon = IterationCcw;
     if (loopElement.baseCommandId === 'internal-while-loop') Icon = ListTree; 
 
     // Check for unset parameters in loop constructs
-    const loopHasUnsetParams = loopElement.parameters.some(paramDef => {
-      const value = loopElement.parameterValues[paramDef.name];
-      // Consider a parameter unset if it's essential and empty.
-      // For simplicity, we'll check if any defined parameter has an empty string value.
-      // You might want more specific checks (e.g. InputObject for ForEach is critical)
-      return value === ''; 
-    });
+    let loopHasUnsetParams = false;
+    if (loopElement.baseCommandId === 'internal-foreach-loop') {
+        loopHasUnsetParams = !loopElement.parameterValues['InputObject'] || !loopElement.parameterValues['ItemVariable'];
+    } else if (loopElement.baseCommandId === 'internal-for-loop') {
+        loopHasUnsetParams = !loopElement.parameterValues['Initializer'] || !loopElement.parameterValues['Condition'] || !loopElement.parameterValues['Iterator'];
+    } else if (loopElement.baseCommandId === 'internal-while-loop') {
+        loopHasUnsetParams = !loopElement.parameterValues['Condition'];
+    }
     
     return (
       <Button
@@ -113,10 +114,10 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters, isLoop
             }
             return null;
           })}
-          {loopHasUnsetParams && (<span className="italic text-destructive">Loop parameters unset. Click to edit.</span>)}
+          {loopHasUnsetParams && (<span className="italic text-destructive text-xs">Loop parameters unset. Click to edit.</span>)}
         </div>
          <div className="text-xs text-blue-600/80 mt-1 italic">
-            Drop commands here to add to loop body.
+            {loopElement.children && loopElement.children.length > 0 ? 'Loop body:' : 'Drop commands here to add to loop body.'}
         </div>
       </Button>
     );
