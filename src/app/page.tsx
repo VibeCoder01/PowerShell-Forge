@@ -68,7 +68,9 @@ function stringifyScriptElements(elements: ScriptElement[]): string {
           const paramsString = commandElement.parameters
             .map(param => {
               const value = commandElement.parameterValues[param.name];
-              return value ? `-${param.name} "${value.replace(/"/g, '`"')}"` : '';
+              // Let user handle quoting for strings with spaces.
+              // This allows for unquoted values like variables ($item) or booleans ($true).
+              return value ? `-${param.name} ${value}` : '';
             })
             .filter(Boolean)
             .join(' ');

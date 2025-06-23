@@ -121,7 +121,7 @@ export function ScriptCommandChip({ command, onClick, hasUnsetParameters }: Scri
             if (value) { 
               return (
                 <Badge variant="secondary" key={param.name} className="font-normal">
-                  <span className={cn(hasUnsetParameters ? "text-destructive/90" : "text-primary/80")}>-{param.name}:</span>&nbsp;"{value}"
+                  <span className={cn(hasUnsetParameters ? "text-destructive/90" : "text-primary/80")}>-{param.name}:</span>&nbsp;{value}
                 </Badge>
               );
             }
