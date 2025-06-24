@@ -73,6 +73,23 @@ export function ParameterEditDialog({
   const isStartLoopCommand = command && command.baseCommandId.startsWith('internal-start-');
   const isEndLoopCommand = command && command.baseCommandId.startsWith('internal-end-');
 
+  const isVariableNameParam = (commandId: string, paramName: string): boolean => {
+    const variableCommands = [
+      'Set-Variable',
+      'New-Variable',
+      'Get-Variable',
+      'Remove-Variable',
+      'Clear-Variable',
+    ];
+    if (variableCommands.includes(commandId) && paramName === 'Name') {
+      return true;
+    }
+    if (commandId === 'internal-start-foreach-loop' && paramName === 'ItemVariable') {
+      return true;
+    }
+    return false;
+  };
+
 
   useEffect(() => {
     if (command) {
@@ -133,7 +150,16 @@ export function ParameterEditDialog({
         onOpenChange(false);
         return;
     }
-    onSave({ ...command, parameterValues: currentParameterValues });
+    const finalValues: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(currentParameterValues)) {
+        if (isVariableNameParam(command.baseCommandId, key)) {
+            finalValues[key] = value.replace(/^\$/, '');
+        } else {
+            finalValues[key] = value;
+        }
+    }
+
+    onSave({ ...command, parameterValues: finalValues });
     onOpenChange(false);
     setNewAdHocName('');
     setNewAdHocValue('');
@@ -290,13 +316,29 @@ export function ParameterEditDialog({
                                 {param.name}
                             </Label>
                             <div className="flex items-center gap-2 md:col-span-4 py-1 pr-1">
+                              {isVariableNameParam(command.baseCommandId, param.name) ? (
+                                <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                                  <span className="text-muted-foreground">$</span>
+                                  <Input
+                                    id={param.name}
+                                    value={(currentParameterValues[param.name] || '').replace(/^\$/, '')}
+                                    onChange={(e) => {
+                                      const sanitizedValue = e.target.value.replace(/^\$/, '');
+                                      handleValueChange(param.name, sanitizedValue);
+                                    }}
+                                    className="h-full w-full border-0 bg-transparent p-0 pl-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    placeholder="variable_name"
+                                  />
+                                </div>
+                              ) : (
                                 <Input
-                                    id={`loop-${param.name}`}
-                                    value={currentParameterValues[param.name] || ''}
-                                    onChange={(e) => handleValueChange(param.name, e.target.value)}
-                                    className="flex-grow"
-                                    placeholder={`Value for ${param.name}`}
+                                  id={`loop-${param.name}`}
+                                  value={currentParameterValues[param.name] || ''}
+                                  onChange={(e) => handleValueChange(param.name, e.target.value)}
+                                  className="flex-grow"
+                                  placeholder={`Value for ${param.name}`}
                                 />
+                              )}
                             </div>
                         </div>
                     ))}
@@ -322,13 +364,29 @@ export function ParameterEditDialog({
                         {param.name}
                       </Label>
                       <div className={`flex items-center gap-2 ${isPotentiallyPathOrFileName ? 'md:col-span-3' : 'md:col-span-4'} py-1 pr-1`}>
-                        <Input
-                          id={param.name}
-                          value={currentParameterValues[param.name] || ''}
-                          onChange={(e) => handleValueChange(param.name, e.target.value)}
-                          className="flex-grow"
-                          placeholder={`Value for ${param.name}`}
-                        />
+                        {isVariableNameParam(command.baseCommandId, param.name) ? (
+                          <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                            <span className="text-muted-foreground">$</span>
+                            <Input
+                              id={param.name}
+                              value={(currentParameterValues[param.name] || '').replace(/^\$/, '')}
+                              onChange={(e) => {
+                                const sanitizedValue = e.target.value.replace(/^\$/, '');
+                                handleValueChange(param.name, sanitizedValue);
+                              }}
+                              className="h-full w-full border-0 bg-transparent p-0 pl-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                              placeholder="variable_name"
+                            />
+                          </div>
+                        ) : (
+                          <Input
+                            id={param.name}
+                            value={currentParameterValues[param.name] || ''}
+                            onChange={(e) => handleValueChange(param.name, e.target.value)}
+                            className="flex-grow"
+                            placeholder={`Value for ${param.name}`}
+                          />
+                        )}
                       </div>
                       {isPotentiallyPathOrFileName && (
                         <Button
