@@ -6,26 +6,39 @@ import { CommandItem } from './command-item';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { List, PencilLine, Inbox } from 'lucide-react';
+import { List, PencilLine, Inbox, Trash2 } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { CustomCommandDialog } from './custom-command-dialog'; 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 interface CommandBrowserProps {
   mockCommands: BasePowerShellCommand[];
   customCommands: BasePowerShellCommand[];
   onSaveCustomCommand: (commandData: { name: string; description?: string; parameters: PowerShellCommandParameter[], category?: string }) => void;
+  onDeleteCustomCommand: (commandId: string) => void;
 }
 
 interface GroupedCommands {
   [category: string]: BasePowerShellCommand[];
 }
 
-export function CommandBrowser({ mockCommands, customCommands, onSaveCustomCommand }: CommandBrowserProps) {
+export function CommandBrowser({ mockCommands, customCommands, onSaveCustomCommand, onDeleteCustomCommand }: CommandBrowserProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCustomCommandDialog, setShowCustomCommandDialog] = useState(false);
   const [activeAccordionItems, setActiveAccordionItems] = useState<string[]>([]);
+  const [commandToDelete, setCommandToDelete] = useState<BasePowerShellCommand | null>(null);
 
   const allCommands = useMemo(() => {
     const markedCustomCommands = customCommands.map(cmd => ({ ...cmd, isCustom: true, category: cmd.category || 'Custom' }));
@@ -82,6 +95,20 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
   const handleAccordionValueChange = (value: string[]) => {
     setActiveAccordionItems(value);
   };
+  
+  const handleDeleteRequest = (commandId: string) => {
+    const command = customCommands.find(c => c.id === commandId);
+    if (command) {
+      setCommandToDelete(command);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (commandToDelete) {
+      onDeleteCustomCommand(commandToDelete.id);
+      setCommandToDelete(null);
+    }
+  };
 
   return (
     <>
@@ -121,7 +148,11 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-0 pl-3 pr-1">
                       {commands.map((command) => (
-                        <CommandItem key={command.id} command={command} />
+                        <CommandItem 
+                          key={command.id} 
+                          command={command} 
+                          onDelete={command.isCustom ? handleDeleteRequest : undefined}
+                        />
                       ))}
                     </AccordionContent>
                   </AccordionItem>
@@ -146,6 +177,25 @@ export function CommandBrowser({ mockCommands, customCommands, onSaveCustomComma
         onOpenChange={setShowCustomCommandDialog}
         onSave={handleAddCustomCommand}
       />
+      <AlertDialog open={!!commandToDelete} onOpenChange={(open) => !open && setCommandToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the custom command "{commandToDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCommandToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete} 
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -333,6 +333,16 @@ export default function PowerShellForgePage() {
     setCustomCommands(prev => [...prev, newCustomCommand]);
     toast({ title: 'Custom Command Added', description: `Command "${newCustomCommand.name}" has been added.` });
   }, [toast]);
+  
+  const handleDeleteCustomCommand = useCallback((commandId: string) => {
+    setCustomCommands(prev => {
+      const commandToRemove = prev.find(cmd => cmd.id === commandId);
+      if (commandToRemove) {
+        toast({ title: 'Custom Command Deleted', description: `Command "${commandToRemove.name}" has been deleted.` });
+      }
+      return prev.filter(cmd => cmd.id !== commandId);
+    });
+  }, [toast]);
 
   const allAvailableCommands = useMemo(() => [...mockCommands, ...customCommands], [mockCommands, customCommands]);
 
@@ -414,7 +424,12 @@ export default function PowerShellForgePage() {
   const columnsData = [
     {
       id: 'command-browser',
-      component: <CommandBrowser mockCommands={mockCommands} customCommands={customCommands} onSaveCustomCommand={handleAddNewCustomCommand} />,
+      component: <CommandBrowser 
+        mockCommands={mockCommands} 
+        customCommands={customCommands} 
+        onSaveCustomCommand={handleAddNewCustomCommand} 
+        onDeleteCustomCommand={handleDeleteCustomCommand} 
+      />,
     },
     {
       id: 'add-script',
