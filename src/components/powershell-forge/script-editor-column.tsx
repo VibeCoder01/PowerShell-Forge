@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { LucideIcon } from 'lucide-react';
-import { Trash2, GripVertical, Wand2, Repeat, IterationCcw, ListTree, CornerRightDown, CornerLeftUp } from 'lucide-react';
+import { Trash2, GripVertical, Wand2 } from 'lucide-react';
 import { ParameterEditDialog } from './parameter-edit-dialog';
 import { ScriptCommandChip } from './script-command-chip';
 import { AiScriptGeneratorDialog } from './ai-script-generator-dialog';
 import { generateScriptFromDescription } from '@/ai/flows/generate-script-from-description';
 import { generateUniqueId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface ScriptEditorColumnProps {
   title: string;
@@ -179,62 +180,58 @@ export function ScriptEditorColumn({
     }
     
     let actualOperationType: 'copy' | 'move';
-    if (sourceInstanceId) { 
-        actualOperationType = (sourceScriptType !== scriptType) ? 'copy' : 'move';
+    if (sourceInstanceId && sourceScriptType === scriptType) {
+        actualOperationType = 'move';
     } else { 
         actualOperationType = 'copy';
     }
 
     let elementToProcess: ScriptElement;
-    let originalRemovedElement: ScriptElement | null = null;
-
+    
     try {
       const parsedElement = JSON.parse(draggedElementJson) as ScriptElement | BasePowerShellCommand;
+      
+      if (actualOperationType === 'copy') {
+        const isNewCommand = !('instanceId' in parsedElement);
+        if (isNewCommand) {
+          const baseCommand = parsedElement as BasePowerShellCommand;
+          const initialParameterValues: { [key: string]: string } = {};
+          baseCommand.parameters.forEach(param => {
+              if (baseCommand.id.startsWith('internal-start-')) {
+                  if (baseCommand.id === 'internal-start-foreach-loop') {
+                      initialParameterValues['ItemVariable'] = 'item';
+                      initialParameterValues['InputObject'] = '$collection';
+                  } else if (baseCommand.id === 'internal-start-for-loop') {
+                      initialParameterValues['Initializer'] = '$i = 0';
+                      initialParameterValues['Condition'] = '$i -lt 10';
+                      initialParameterValues['Iterator'] = '$i++';
+                  } else if (baseCommand.id === 'internal-start-while-loop') {
+                      initialParameterValues['Condition'] = '$true';
+                  }
+              } else if (baseCommand.id === 'internal-add-comment') {
+                  initialParameterValues['CommentText'] = 'Your comment here';
+                  initialParameterValues['_prependBlankLine'] = 'true';
+              } else if (baseCommand.id === 'internal-user-prompt') {
+                  initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
+              }
+              else {
+                  initialParameterValues[param.name] = ''; 
+              }
+          });
 
-      if (sourceInstanceId) { 
-        elementToProcess = parsedElement as ScriptElement; // For 'move', this is the original object initially.
-        if (actualOperationType === 'copy') {
-          elementToProcess = { ...parsedElement, instanceId: generateUniqueId() } as ScriptElement;
-          if (elementToProcess.type === 'command' && elementToProcess.baseCommandId === 'internal-user-prompt') {
-             if (!elementToProcess.parameterValues['PromptText'] || elementToProcess.parameterValues['PromptText'] === 'ACTION NEEDED: [Your prompt text here]') {
-                 elementToProcess.parameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
-             }
-           }
+          elementToProcess = {
+              instanceId: generateUniqueId(),
+              type: 'command',
+              name: baseCommand.name,
+              parameters: baseCommand.parameters,
+              parameterValues: initialParameterValues,
+              baseCommandId: baseCommand.id,
+          } as ScriptPowerShellCommand;
+        } else { // Copying from another column
+           elementToProcess = { ...(parsedElement as ScriptElement), instanceId: generateUniqueId() };
         }
-      } else { 
-        const baseCommand = parsedElement as BasePowerShellCommand;
-        const initialParameterValues: { [key: string]: string } = {};
-        baseCommand.parameters.forEach(param => {
-            if (baseCommand.id.startsWith('internal-start-')) {
-                if (baseCommand.id === 'internal-start-foreach-loop') {
-                    initialParameterValues['ItemVariable'] = 'item';
-                    initialParameterValues['InputObject'] = '$collection';
-                } else if (baseCommand.id === 'internal-start-for-loop') {
-                    initialParameterValues['Initializer'] = '$i = 0';
-                    initialParameterValues['Condition'] = '$i -lt 10';
-                    initialParameterValues['Iterator'] = '$i++';
-                } else if (baseCommand.id === 'internal-start-while-loop') {
-                    initialParameterValues['Condition'] = '$true';
-                }
-            } else if (baseCommand.id === 'internal-add-comment') {
-                initialParameterValues['CommentText'] = 'Your comment here';
-                initialParameterValues['_prependBlankLine'] = 'true';
-            } else if (baseCommand.id === 'internal-user-prompt') {
-                initialParameterValues['PromptText'] = 'ACTION NEEDED: [Your prompt text here]';
-            }
-             else {
-                initialParameterValues[param.name] = baseCommand.parameterValues?.[param.name] || '';
-            }
-        });
-        
-        elementToProcess = {
-            instanceId: generateUniqueId(),
-            type: 'command',
-            name: baseCommand.name,
-            parameters: baseCommand.parameters,
-            parameterValues: initialParameterValues,
-            baseCommandId: baseCommand.id,
-        } as ScriptPowerShellCommand;
+      } else { // Moving within the same column
+        elementToProcess = parsedElement as ScriptElement;
       }
     } catch (err) {
       console.error("Error processing dropped element JSON", err);
@@ -244,23 +241,14 @@ export function ScriptEditorColumn({
 
     setScriptElements(prevElements => {
       let currentElements = [...prevElements];
-
+      
       if (actualOperationType === 'move' && sourceInstanceId) {
         const { updatedElements, removedEl } = removeElementByIdRecursive(currentElements, sourceInstanceId);
         if (removedEl) {
-            originalRemovedElement = removedEl;
+            elementToProcess = removedEl; // Use the actual removed element
             currentElements = updatedElements;
-            // For a move, elementToProcess is now the actual removed element
-            elementToProcess = originalRemovedElement; 
         } else {
-          // Element not found in this column (shouldn't happen for intra-column move)
-          // Potentially a copy from another column which failed to be identified as such earlier.
-          // Let's ensure it gets a new ID if it was supposed to be a move but wasn't found.
-          // This safeguards against ID clashes if the earlier logic had a hiccup.
-          if(elementToProcess.instanceId === sourceInstanceId) { // if it still has the source ID
-            elementToProcess = { ...elementToProcess, instanceId: generateUniqueId() };
-          }
-          console.warn("Move operation: source element not found for removal from this column.", sourceInstanceId);
+            console.warn("Move operation: source element not found for removal from this column.", sourceInstanceId);
         }
       }
       
@@ -271,7 +259,7 @@ export function ScriptEditorColumn({
     });
 
     const droppedElementName = (elementToProcess.type === 'raw') ? 'Raw line' : elementToProcess.name;
-    const operationMessage = actualOperationType === 'move' ? "Element Moved" : "Element Copied";
+    const operationMessage = actualOperationType === 'move' ? "Element Moved" : "Element Added";
     toast({ title: operationMessage, description: `${droppedElementName} processed.` });
     resetDragState();
   };
@@ -422,9 +410,10 @@ export function ScriptEditorColumn({
                   } else if (!cmdElement.baseCommandId.startsWith('internal-end-')) {
                     // General check for commands with defined parameters but all values are empty
                     const hasDefinedParams = cmdElement.parameters && cmdElement.parameters.length > 0;
-                    const allValuesAreEmpty = Object.entries(cmdElement.parameterValues)
-                                                .filter(([key]) => !key.startsWith('_') && cmdElement.parameters.some(p => p.name === key))
-                                                .every(([,val]) => !val || val.trim() === '');
+                    const allValuesAreEmpty = Object.values(cmdElement.parameterValues)
+                        .filter(([key]) => cmdElement.parameters.some(p => p.name === key))
+                        .every(([,val]) => !val || val.trim() === '');
+
                     if (hasDefinedParams && allValuesAreEmpty) {
                       hasUnset = true;
                     }
@@ -458,67 +447,70 @@ export function ScriptEditorColumn({
 
 
   return (
-    <Card
-      className={cn(
-        'h-full flex flex-col shadow-xl transition-all duration-200',
-        (isDraggingOverColumn && !dropTargetInfo?.targetId) ? 
-          (visualDragOperationType === 'copy' ? `ring-2 ring-accent ring-offset-2` : `ring-2 ring-primary ring-offset-2`)
-          : ''
-      )}
-      aria-dropeffect={visualDragOperationType ?? 'none'}
-    >
-      <CardHeader className="py-3 px-4 border-b flex justify-between items-center">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Icon className="h-5 w-5 text-primary" />
-          {title}
-        </CardTitle>
-        <Button variant="outline" size="sm" onClick={() => setShowAiGeneratorDialog(true)} className="text-xs py-1 px-2 h-auto">
-            <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-            AI Generate
-        </Button>
-      </CardHeader>
-      <CardContent
-        className="p-0 flex-grow flex flex-col relative"
-        onDragOver={(e) => handleDragOver(e, null)} 
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+    <TooltipProvider>
+      <Card
+        className={cn(
+          'h-full flex flex-col shadow-xl transition-all duration-200',
+          (isDraggingOverColumn && !dropTargetInfo?.targetId) ? 
+            (visualDragOperationType === 'copy' ? `ring-2 ring-accent ring-offset-2` : `ring-2 ring-primary ring-offset-2`)
+            : ''
+        )}
+        aria-dropeffect={visualDragOperationType ?? 'none'}
       >
-        <ScrollArea className="h-full w-full" viewportRef={scrollAreaRef}>
-          <div className="p-4 space-y-1 min-h-[200px] font-mono text-xs">
-            {scriptElements.length === 0 && !isDraggingOverColumn && (
-              <p className="text-muted-foreground text-center py-10 text-xs">Drag commands here or use AI...</p>
-            )}
-            {scriptElements.length === 0 && isDraggingOverColumn && !dropTargetInfo?.targetId && (
-              <div className="h-full flex items-center justify-center">
-                <div className={`h-1.5 w-full ${visualDragOperationType === 'copy' ? 'bg-accent' :  'bg-primary'} my-1 animate-pulse`}></div>
-              </div>
-            )}
-            {renderScriptElementsRecursive(scriptElements)}
-            {dropTargetInfo && !dropTargetInfo.targetId && dropTargetInfo.position === 'after' && (
-                 <div className={`h-1.5 ${visualDragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-      <CardFooter className="p-2 border-t flex justify-end items-center gap-2">
-         <p className="text-xs text-muted-foreground mr-auto">Elements: {scriptElements.length}</p>
-      </CardFooter>
+        <CardHeader className="py-3 px-4 border-b flex justify-between items-center">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Icon className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => setShowAiGeneratorDialog(true)} className="text-xs py-1 px-2 h-auto">
+              <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+              AI Generate
+          </Button>
+        </CardHeader>
+        <CardContent
+          className="p-0 flex-grow flex flex-col relative"
+          onDragOver={(e) => handleDragOver(e, null)} 
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <ScrollArea className="h-full w-full" viewportRef={scrollAreaRef}>
+            <div className="p-4 space-y-1 min-h-[200px] font-mono text-xs">
+              {scriptElements.length === 0 && !isDraggingOverColumn && (
+                <p className="text-muted-foreground text-center py-10 text-xs">Drag commands here or use AI...</p>
+              )}
+              {scriptElements.length === 0 && isDraggingOverColumn && !dropTargetInfo?.targetId && (
+                <div className="h-full flex items-center justify-center">
+                  <div className={`h-1.5 w-full ${visualDragOperationType === 'copy' ? 'bg-accent' :  'bg-primary'} my-1 animate-pulse`}></div>
+                </div>
+              )}
+              {renderScriptElementsRecursive(scriptElements)}
+              {dropTargetInfo && !dropTargetInfo.targetId && dropTargetInfo.position === 'after' && (
+                  <div className={`h-1.5 ${visualDragOperationType === 'copy' ? 'bg-accent' : 'bg-primary'} rounded-full my-0.5 mx-2 animate-pulse`}></div>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+        <CardFooter className="p-2 border-t flex justify-end items-center gap-2">
+          <p className="text-xs text-muted-foreground mr-auto">Elements: {scriptElements.length}</p>
+        </CardFooter>
 
-      {editingCommand && (
-        <ParameterEditDialog
-          key={editingCommand.instanceId} 
-          isOpen={showParameterDialog}
-          onOpenChange={setShowParameterDialog}
-          command={editingCommand}
-          onSave={handleSaveEditedCommand}
+        {editingCommand && (
+          <ParameterEditDialog
+            key={editingCommand.instanceId} 
+            isOpen={showParameterDialog}
+            onOpenChange={setShowParameterDialog}
+            command={editingCommand}
+            onSave={handleSaveEditedCommand}
+          />
+        )}
+        <AiScriptGeneratorDialog
+          open={showAiGeneratorDialog}
+          onOpenChange={setShowAiGeneratorDialog}
+          onGenerate={handleGenerateScriptWithAI}
+          scriptTypeTitle={title}
         />
-      )}
-      <AiScriptGeneratorDialog
-        open={showAiGeneratorDialog}
-        onOpenChange={setShowAiGeneratorDialog}
-        onGenerate={handleGenerateScriptWithAI}
-        scriptTypeTitle={title}
-      />
-    </Card>
+      </Card>
+    </TooltipProvider>
   );
 }
+
