@@ -72,7 +72,7 @@ export function CommandItem({ command, onDelete }: CommandItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1 h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-10 top-1/2 -translate-y-1/2 h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(command.id);
