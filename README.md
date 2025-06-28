@@ -8,6 +8,9 @@ PowerShell Forge is a Next.js application that helps you build and manage PowerS
 - **Parameter Editing** – modify and validate command parameters inline.
 - **Script Management** – load and save scripts or export them as `.ps1` files.
 
+![image](https://github.com/user-attachments/assets/50870cb4-c2d9-4c10-ae4f-c9efa218a720)
+
+
 ## Prerequisites
 
 - **Node.js** 20 or later
