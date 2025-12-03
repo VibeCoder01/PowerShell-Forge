@@ -1,9 +1,3 @@
-## ----- BUILT FOR THE FUN OF BUILDING      -----
-## ----- KEEP YOUR EXPECTATIONS LOW         ----- 
-## ----- ALL CODE AND PROSE IS AI GENERATED -----
-## ----- USE WITH CAUTION !!!               -----
-##
-
 # PowerShell Forge
 
 PowerShell Forge is a Next.js application that helps you build and manage PowerShell scripts through a drag‑and‑drop interface. It was generated from the Firebase Studio starter template and provides the following features:
